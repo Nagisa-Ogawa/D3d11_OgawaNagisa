@@ -355,7 +355,7 @@ int Game::Run()
 	float nowUPos = 0.0f;
 	float nowVPos = 0.0f;
 
-	VertexPositionNormalTexture vertices[vertex_num] = {};
+	VertexPositionNormalTexture* vertices = new VertexPositionNormalTexture[vertex_num];
 
 	for (int v = 0; v <= v_max; v++) {
 		for (int u = 0; u <= u_max; u++) {
@@ -411,7 +411,7 @@ int Game::Run()
 
 	// 頂点バッファーを作成
 	VertexBuffer* vertexBuffer = nullptr;
-	vertexBuffer = VertexBuffer::Create(graphicsDevice, sizeof vertices);
+	vertexBuffer = VertexBuffer::Create(graphicsDevice, sizeof(VertexPositionNormalTexture) * vertex_num);
 	if (vertexBuffer == nullptr)
 	{
 		OutputDebugString(L"頂点バッファーを作成できませんでした。");
@@ -420,10 +420,12 @@ int Game::Run()
 	// リソースを更新
 	vertexBuffer->SetData(vertices);
 
+	delete[] vertices;
+
 	// インデックスデータの要素数
 	const int index_num = (v_max * u_max) * 6;
 	//インデックスデータの配列
-    UINT32 indices[index_num] = {};
+	UINT32* indices = new UINT32[index_num];
 
 	for (int v = 0; v < v_max; v++) {
 		// 縦方向のオフセット
@@ -452,7 +454,7 @@ int Game::Run()
 
 
 	// インデックスの数
-	UINT indexCount = ARRAYSIZE(indices);
+	UINT indexCount = index_num;
 
 	// インデックスバッファーを作成
 	IndexBuffer* indexBuffer = nullptr;
@@ -462,6 +464,8 @@ int Game::Run()
 	}
 	// リソースを更新
 	indexBuffer->SetData(indices);
+
+	delete[] indices;
 
 	// 平行光源の情報
 	struct ConstantDirectionalLight {
@@ -729,7 +733,7 @@ int Game::Run()
 
 		// 描画
 		immediateContext->DrawIndexed(
-			ARRAYSIZE(indices),		// 描画する頂点の数
+			indexCount,		// 描画する頂点の数
 			0,		// 最初の頂点のインデックス
 			0
 		);
