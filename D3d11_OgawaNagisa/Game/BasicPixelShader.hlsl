@@ -120,10 +120,10 @@ float4 main(PSInput input) : SV_TARGET
 	GeometricContext geometry;
 	// ワールド座標系のポジション
 	geometry.worldPosition = input.worldPosition.xyz;
-	// 正規化したワールド空間上の法線
+	// 正規化したワールド座標系の法線
 	geometry.worldNormal = normalize(input.worldNormal);
-	// 正規化した視線ベクトル = カメラの座標 - ワールド空間上の位置座標
-	geometry.worldViewDir = normalize(mul(viewPosition,World) - input.worldPosition).xyz;
+	// 正規化したワールド座標系の視線ベクトル(物体からカメラへの)
+	geometry.worldViewDir = normalize(viewPosition.xyz - input.worldPosition.xyz);
 
 	// 物体表面の材質
 	Material material;
@@ -159,7 +159,7 @@ float4 main(PSInput input) : SV_TARGET
 	// 平行光源
 	DirectionalLight directionalLight;
 	// 平行光源の向きをワールド座標系にする
-	directionalLight.direction = mul(constantDirectionalLight.direction, World);
+	directionalLight.direction = constantDirectionalLight.direction;
 	directionalLight.color = constantDirectionalLight.color.xyz;
 
 	// 入射光に平行光源をセット
