@@ -400,104 +400,12 @@ int Game::Run()
 		nowVPos += vOffset;
 	}
 
-
-	//// 頂点データの配列
-	//VertexPositionNormalTexture vertices[divideCount + divideCount + 2 * (divideCount + 1)] = {};
-	//// Top
-	//for (size_t triangle = 0; triangle < divideCount; triangle++)
-	//{
-	//	// 角度
-	//	const auto angle = XM_2PI / divideCount * triangle;
-	//	// 位置座標
-	//	vertices[triangle].position.x = radius * XMScalarCos(angle);
-	//	vertices[triangle].position.y = height / 2;
-	//	vertices[triangle].position.z = radius * -XMScalarSin(angle);
-	//	// 法線ベクトル
-	//	vertices[triangle].normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	//	// UV座標
-
-	//}
-	//// Bottom
-	//for (size_t triangle = 0; triangle < divideCount; triangle++)
-	//{
-	//	const auto angle = XM_2PI / divideCount * triangle;
-	//	// vertices配列にはTop面の頂点数分(divideCount)だけずらしてアクセスする
-	//	// 位置座標
-	//	vertices[triangle + divideCount].position.x = radius * XMScalarCos(angle);
-	//	vertices[triangle + divideCount].position.y = -height / 2;
-	//	vertices[triangle + divideCount].position.z = radius * XMScalarSin(angle);
-	//	// 法線ベクトル
-	//	vertices[triangle + divideCount].normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	//	// UV座標
-	//}
-	//// Side
-	//for (size_t triangle = 0; triangle <= divideCount; triangle++)
-	//{
-	//	const auto angle = XM_2PI / divideCount * triangle;
-	//	// vertices配列にはTop面とBottom面の頂点数の分(2 * divideCount)だけずらしてアクセスする
-	//	auto& top = vertices[2 * triangle + 0 + 2 * divideCount];
-	//	auto& bottom = vertices[2 * triangle + 1 + 2 * divideCount];
-
-	//	// Top面に隣接する頂点
-	//	// 法線ベクトル
-	//	top.normal = XMFLOAT3(XMScalarCos(angle), 0.0f, XMScalarSin(angle));
-	//	// 位置座標
-	//	top.position.x = radius * top.normal.x;
-	//	top.position.y = height / 2;
-	//	top.position.z = radius * top.normal.z;
-
-	//	// Bottom面に隣接する頂点
-	//	// 法線ベクトル
-	//	bottom.normal = top.normal;
-	//	// 位置座標
-	//	bottom.position = top.position;
-	//	bottom.position.y = -height / 2;
-	//	// UV座標
-	//	if (triangle%2==0)
-	//	{
-	//		top.texCoord = { UVPos,0.0f };
-	//		bottom.texCoord = { UVPos,1.0f };
-	//	}
-	//	if (triangle %2==1)
-	//	{
-	//		top.texCoord = { UVPos,0.0f };
-	//		bottom.texCoord = { UVPos,1.0f };
-	//	}
-	//	UVPos += UVOffset;
-	//}
-
 		// 頂点データの配列
 	//VertexPositionNormalTexture vertices[] = {
-	//	// Front
-	//	//{ { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f } },
-	//	//{ {-1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
-	//	//{ { 1.0f,-1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-	//	//{ {-1.0f,-1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-		//// Back
 		//{ {-2.0f, 2.0f,0.0f }, { 0.0f, 0.0f,-1.0f }, { 0.0f, 0.0f } },
 		//{ { 2.0f, 2.0f,0.0f }, { 0.0f, 0.0f,-1.0f }, { 1.0f, 0.0f } },
 		//{ {-2.0f,-2.0f,0.0f }, { 0.0f, 0.0f,-1.0f }, { 0.0f, 1.0f } },
 		//{ { 2.0f,-2.0f,0.0f }, { 0.0f, 0.0f,-1.0f }, { 1.0f, 1.0f } },
-	//	//// Right
-	//	//{ { 1.0f, 1.0f,-1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-	//	//{ { 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-	//	//{ { 1.0f,-1.0f,-1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f } },
-	//	//{ { 1.0f,-1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f } },
-	//	//// Left
-	//	//{ {-1.0f, 1.0f, 1.0f }, {-1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-	//	//{ {-1.0f, 1.0f,-1.0f }, {-1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-	//	//{ {-1.0f,-1.0f, 1.0f }, {-1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f } },
-	//	//{ {-1.0f,-1.0f,-1.0f }, {-1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f } },
-	//	//// UP
-	//	//{ {-1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-	//	//{ { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-	//	//{ {-1.0f, 1.0f,-1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-	//	//{ { 1.0f, 1.0f,-1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-	//	//// DOWN
-	//	//{ { 1.0f,-1.0f, 1.0f }, { 0.0f,-1.0f, 0.0f }, { 0.0f, 0.0f } },
-	//	//{ {-1.0f,-1.0f, 1.0f }, { 0.0f,-1.0f, 0.0f }, { 1.0f, 0.0f } },
-	//	//{ { 1.0f,-1.0f,-1.0f }, { 0.0f,-1.0f, 0.0f }, { 0.0f, 1.0f } },
-	//	//{ {-1.0f,-1.0f,-1.0f }, { 0.0f,-1.0f, 0.0f }, { 1.0f, 1.0f } },
 	//};
 
 
@@ -532,42 +440,6 @@ int Game::Run()
 		}
 	}
 
-	////インデックスデータの配列
-	//UINT32 indices[3 * (divideCount - 2) + 3 * (divideCount - 2) + 3 * 2 * divideCount] = {};
-	//// Top
-	//for (UINT32 triangle = 0; triangle < divideCount - 2; triangle++)
-	//{
-	//	indices[3 * triangle + 0] = 0;
-	//	indices[3 * triangle + 1] = triangle + 1;
-	//	indices[3 * triangle + 2] = triangle + 2;
-	//}
-	//// Buttom
-	//const SIZE_T indexOffset = 3 * (divideCount - 2);
-	//for (UINT32 triangle = 0; triangle < divideCount - 2; triangle++)
-	//{
-	//	indices[3 * triangle + 0 + indexOffset] = 0 + divideCount;
-	//	indices[3 * triangle + 1 + indexOffset] = triangle + 1 + divideCount;
-	//	indices[3 * triangle + 2 + indexOffset] = triangle + 2 + divideCount;
-	//}
-	//// Side
-	//for (UINT triangle = 0; triangle < divideCount; triangle++)
-	//{
-	//	const UINT32 indexOffset = 3 * (divideCount - 2) + 3 * (divideCount - 2);
-	//	//indices[indexOffset + 6 * triangle + 0] = (2 * triangle + 0) % (2 * divideCount) + 2 * divideCount;
-	//	//indices[indexOffset + 6 * triangle + 1] = (2 * triangle + 2) % (2 * divideCount) + 2 * divideCount;
-	//	//indices[indexOffset + 6 * triangle + 2] = (2 * triangle + 1) % (2 * divideCount) + 2 * divideCount;
-	//	//indices[indexOffset + 6 * triangle + 3] = (2 * triangle + 3) % (2 * divideCount) + 2 * divideCount;
-	//	//indices[indexOffset + 6 * triangle + 4] = (2 * triangle + 1) % (2 * divideCount) + 2 * divideCount;
-	//	//indices[indexOffset + 6 * triangle + 5] = (2 * triangle + 2) % (2 * divideCount) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 0] = (2 * triangle + 0) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 1] = (2 * triangle + 2) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 2] = (2 * triangle + 1) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 3] = (2 * triangle + 3) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 4] = (2 * triangle + 1) + 2 * divideCount;
-	//	indices[indexOffset + 6 * triangle + 5] = (2 * triangle + 2) + 2 * divideCount;
-
-	//}
-
 		// インデックスデータの配列
 	//UINT32 indices[] = {
 	//	 0,  1,  2,  3,  2,  1,	// Front
@@ -591,34 +463,23 @@ int Game::Run()
 	// リソースを更新
 	indexBuffer->SetData(indices);
 
-
-
-	// 定数バッファーを介してシェーダーに毎フレーム送る行列データを表しています。
-	//struct ConstantLight
-	//{
-	//	// ライトの位置座標(x,y,z,w 平行光源 w = 0, 点光源 w = 1)
-	//	DirectX::XMFLOAT4 lightPosition;
-	//	// ライトの拡散反射の色(r,g,b)
-	//	DirectX::XMFLOAT4 lightDiffuse;
-	//	// ライトの鏡面反射の色(r,g,b)
-	//	DirectX::XMFLOAT4 lightSpecular;
-	//};
-
+	// 平行光源の情報
 	struct ConstantDirectionalLight {
 		XMFLOAT4 direction = XMFLOAT4(-0.5f, 0.5f, -1.0f, 0.0f);
 		XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 
+	// 点光源の情報
 	struct ConstantPointLight {
 		XMFLOAT4 position = XMFLOAT4(10.0f, -10.0f, -2.0f, 0.0f);;
 		XMFLOAT4 color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 		XMFLOAT4 distance_decay = XMFLOAT4(100.0f, 1.64f, 0.0f, 0.0f);
 	};
 
+	// 物体表面の質感
 	struct ConstantMaterial
 	{
-		// 質感
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.5f, 1.0f, 0, 0);
+		XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.1f, 0, 0);
 		XMFLOAT4 albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 
@@ -630,7 +491,6 @@ int Game::Run()
 		XMFLOAT4X4 worldViewProjectionMatrix;
 		// 視点座標
 		XMFLOAT4 viewPosition = XMFLOAT4(0, 1, -10, 1);
-		// 環境光
 		// 光源
 		ConstantDirectionalLight constantDirectionalLight;
 		ConstantPointLight constantPointLight;
@@ -690,6 +550,7 @@ int Game::Run()
 	//	0xFF00FFFF, 0xFF000000, 0xFF00FFFF, 0xFF000000,
 	//	0xFF000000, 0xFF00FFFF, 0xFF000000, 0xFF00FFFF,
 	//};
+	// rawデータの読み込み
 	{
 		//FILE* fp;
 
@@ -709,7 +570,7 @@ int Game::Run()
 	// bitmapデータの読み込み
 	ReadBitMap readBitMap;
 	// データを取得
-	uint32_t* source = readBitMap.ReadFromBitMap("../resource/image/gold.bmp");
+	uint32_t* source = readBitMap.ReadFromBitMap("../resource/image/earth.bmp");
 	if (source == nullptr)
 	{
 		OutputDebugString(L"画像データを読み込めませんでした。");
@@ -764,34 +625,12 @@ int Game::Run()
 				farZ
 			);
 
-		// 光源の位置
-		//XMVECTOR lightPosition = XMVectorSet(-2.0f, 2.0f, -1.0f, 0.0f);
-		//// 拡散反射成分
-		//XMVECTOR lightDiffuse = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
-		//// 鏡面反射成分
-		//XMVECTOR lightSpecular = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
-		//// 環境反射成分
-		//XMVECTOR lightAmbient = XMVectorSet(0.2f, 0.2f, 0.2f, 0.0f);
-		//// 拡散反射率
-		//XMVECTOR materialDiffuse = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
-		//// 鏡面反射率と強さ(光沢度係数)
-		//XMVECTOR materialSpecular = XMVectorSet(1.0f, 1.0f, 1.0f, 20.0f);
-		//// 環境反射率
-		//XMVECTOR materialAmbient = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
-
 		ConstantMatricesBuffer constantMatricesBuffer;
 		XMStoreFloat4x4(&constantMatricesBuffer.worldMatrix, XMMatrixTranspose(worldMatrix));
 		XMStoreFloat4x4(&constantMatricesBuffer.viewMatrix, XMMatrixTranspose(viewMatrix));
 		XMStoreFloat4x4(&constantMatricesBuffer.projectionMatrix, XMMatrixTranspose(projectonMatrix));
 		XMStoreFloat4x4(&constantMatricesBuffer.worldViewProjectionMatrix, XMMatrixTranspose(worldMatrix* viewMatrix* projectonMatrix));
 		XMStoreFloat4(&constantMatricesBuffer.viewPosition, viewPosition);
-		// XMStoreFloat4(&constantMatricesBuffer.ambient,lightAmbient);
-		//XMStoreFloat4(&constantMatricesBuffer.light.lightPosition,lightPosition);
-		//XMStoreFloat4(&constantMatricesBuffer.light.lightDiffuse,lightDiffuse);
-		//XMStoreFloat4(&constantMatricesBuffer.light.lightSpecular,lightSpecular);
-		//XMStoreFloat4(&constantMatricesBuffer.material.materialAmbient,materialAmbient);
-		//XMStoreFloat4(&constantMatricesBuffer.material.materialDiffuse,materialDiffuse);
-		//XMStoreFloat4(&constantMatricesBuffer.material.materialSpecular,materialSpecular);
 
 		// 定数バッファーを更新
 		constantBuffer->SetData(&constantMatricesBuffer);
