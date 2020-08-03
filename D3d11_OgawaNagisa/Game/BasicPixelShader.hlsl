@@ -183,5 +183,6 @@ float4 main(PSInput input) : SV_TARGET
 	float3 outgoingLight = emissive + reflectedLight.directDiffuse + reflectedLight.directSpecular + reflectedLight.indirectDiffuse + reflectedLight.indirectSpecular;
 	float4 texel = diffuseTexture.Sample(diffuseTextureSampler, input.texCoord);
 	return float4(texel.xyz*outgoingLight, texel.w*opacity);
+	// return float4(outgoingLight, opacity);
 }
 

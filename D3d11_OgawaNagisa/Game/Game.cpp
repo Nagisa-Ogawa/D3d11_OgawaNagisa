@@ -476,7 +476,8 @@ int Game::Run()
 	// 物体表面の質感
 	struct ConstantMaterial
 	{
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.0f, 0, 0);
+		//XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.0f, 0, 0);
+		XMFLOAT4 roughness_metallic = XMFLOAT4(0.3f, 0.8f, 0, 0);
 		XMFLOAT4 albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 
@@ -566,7 +567,7 @@ int Game::Run()
 	// bitmapデータの読み込み
 	ReadBitMap readBitMap;
 	// データを取得
-	uint32_t* source = readBitMap.ReadFromBitMap("../resource/image/earth.bmp");
+	uint32_t* source = readBitMap.ReadFromBitMap("../resource/image/gold.bmp");
 	if (source == nullptr)
 	{
 		OutputDebugString(L"画像データを読み込めませんでした。");
