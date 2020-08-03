@@ -473,17 +473,10 @@ int Game::Run()
 		XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 
-	// ì_åıåπÇÃèÓïÒ
-	struct ConstantPointLight {
-		XMFLOAT4 position = XMFLOAT4(10.0f, -10.0f, -2.0f, 0.0f);;
-		XMFLOAT4 color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		XMFLOAT4 distance_decay = XMFLOAT4(100.0f, 1.64f, 0.0f, 0.0f);
-	};
-
 	// ï®ëÃï\ñ ÇÃéøä¥
 	struct ConstantMaterial
 	{
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.1f, 0, 0);
+		XMFLOAT4 roughness_metallic = XMFLOAT4(0.4f, 1.0f, 0, 0);
 		XMFLOAT4 albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 
@@ -497,7 +490,6 @@ int Game::Run()
 		XMFLOAT4 viewPosition = XMFLOAT4(0, 1, -10, 1);
 		// åıåπ
 		ConstantDirectionalLight constantDirectionalLight;
-		ConstantPointLight constantPointLight;
 		// ï®ëÃÇÃéøä¥
 		ConstantMaterial material;
 	};
