@@ -476,7 +476,7 @@ int Game::Run()
 	// •¨‘Ì•\–Ê‚ÌŽ¿Š´
 	struct ConstantMaterial
 	{
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.4f, 1.0f, 0, 0);
+		XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.0f, 0, 0);
 		XMFLOAT4 albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
 	};
 

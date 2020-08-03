@@ -90,7 +90,7 @@ float3 SpecularBRDF
 (IncidentLight directLight, GeometricContext geometry,
 	float3 specularColor, float roughnessFactor) {
 
-	float3 N = geometry.worldNormal;		// 法線
+	float3 N = geometry.worldNormal;	// 法線
 	float3 V = geometry.worldViewDir;	// 視線ベクトル
 	float3 L = directLight.direction;	// ライトベクトル
 
@@ -115,7 +115,6 @@ float3 SpecularBRDF
 
 float4 main(PSInput input) : SV_TARGET
 {
-
 	// 物体の幾何情報
 	GeometricContext geometry;
 	// ワールド座標系のポジション
@@ -130,6 +129,7 @@ float4 main(PSInput input) : SV_TARGET
 	// 金属か非金属かを設定するパラメータ = 鏡面反射率
 	float metallic = 0.0f;
 	// 物体表面の粗さ
+	// 金属か非金属かを設定するパラメータ =
 	float roughness = 0.0f;
 	/*波長ごとの反射能 = 色ごとの反射能*/
 	float3 albedo = float3(0.0f, 0.0f, 0.0f);
@@ -174,12 +174,11 @@ float4 main(PSInput input) : SV_TARGET
 	// irradianceにπを掛けて調整
 	irradiance *= PI;
 
-	// レンダリング方程式よりBRDF*放射照度(放射輝度*コサイン項)
+	// レンダリング方程式より反射成分 = BRDF * 放射照度(放射輝度 * コサイン項)
 	// 拡散反射成分
-	reflectedLight.directDiffuse += irradiance * DiffuseBRDF(material.diffuseColor);
+	reflectedLight.directDiffuse += DiffuseBRDF(material.diffuseColor) * irradiance;
 	// 鏡面反射成分
-	reflectedLight.directSpecular += irradiance * SpecularBRDF(incidentLight, geometry, material.specularColor, material.specularRoughness);
-
+	reflectedLight.directSpecular += SpecularBRDF(incidentLight, geometry, material.specularColor, material.specularRoughness) * irradiance;
 	// 放射輝度 = 自己放射　+ 反射成分(直接光の拡散反射成分 + 直接光の鏡面反射成分 + 間接光の拡散反射成分 + 間接光の鏡面反射成分)
 	float3 outgoingLight = emissive + reflectedLight.directDiffuse + reflectedLight.directSpecular + reflectedLight.indirectDiffuse + reflectedLight.indirectSpecular;
 	float4 texel = diffuseTexture.Sample(diffuseTextureSampler, input.texCoord);
