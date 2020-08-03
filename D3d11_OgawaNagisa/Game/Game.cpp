@@ -477,8 +477,8 @@ int Game::Run()
 	struct ConstantMaterial
 	{
 		//XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.0f, 0, 0);
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.3f, 0.8f, 0, 0);
-		XMFLOAT4 albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
+		XMFLOAT4 roughness_metallic = XMFLOAT4(0.5f,1.0f, 0, 0);
+		XMFLOAT4 albedo = XMFLOAT4(1.0f, 0.766f, 0.336, 0.0f);
 	};
 
 	struct ConstantMatricesBuffer
