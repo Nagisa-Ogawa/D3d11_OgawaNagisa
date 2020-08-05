@@ -6,9 +6,11 @@ struct ConstantDirectionalLight {
 };
 
 // 物体表面の質感用構造体
-struct MaterialTexture {
-	float4 roughness_metallic;
-	float4 albedo;
+struct ConstantMaterial {
+	float3 baseColor;
+	float metallic;
+	float3 specular;
+	float roughness;
 };
 
 // 定数バッファー
@@ -27,7 +29,7 @@ cbuffer ConstantBuffer
 	// 平行光源情報
 	ConstantDirectionalLight constantDirectionalLight;
 	// 物体表面の質感の情報
-	MaterialTexture materialTexture;
+	ConstantMaterial constantMaterial;
 }
 
 // 頂点シェーダ―への入力

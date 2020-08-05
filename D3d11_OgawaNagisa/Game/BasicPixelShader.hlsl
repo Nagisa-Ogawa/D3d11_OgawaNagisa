@@ -7,9 +7,10 @@ SamplerState diffuseTextureSampler;
 
 // 物体の情報
 struct Material {
-	float3 diffuseRatioColor;		// 入射光のうち拡散反射になる割合
-	float3 specularRatioColor;		// 入射光のうち鏡面反射になる割合
-	float roughness;	// 物体表面の粗さ
+	float3 baseColor;		// 物体表面の色
+	float metallic;		// 金属度合い
+	float3 specular;		// 鏡面反射の調整値
+	float roughness;		// 物体の粗さ
 };
 
 // 入射光(光源から入ってくる光)
@@ -20,8 +21,8 @@ struct IncidentLight {
 
 // 拡散反射BRDF(正規化ランバートモデル)
 // fd = pd/π
-float3 DiffuseBRDF(float3 diffuseColor) {
-	return diffuseColor / PI;
+float3 DiffuseBRDF(float3 baseColor) {
+	return baseColor / PI;
 }
 
 // フレネル(F項)
@@ -55,8 +56,7 @@ float G_Smith_Schlick(float a, float dotNV, float dotNL) {
 // Cook-Torranceモデル
 // f(r,s) = DGF / 4(n・l)(n・v)
 float3 SpecularBRDF
-(IncidentLight incidentLight, float3 worldNormal, float3 worldViewDir,
-	float3 specularColor, float roughness) {
+(IncidentLight incidentLight, float3 worldNormal, float3 worldViewDir, float3 specular, Material material) {
 
 	float3 lightDirection = incidentLight.direction;	// ライトベクトル
 	float3 halfVec = normalize(lightDirection + worldViewDir);		// ハーフベクトル
@@ -66,14 +66,14 @@ float3 SpecularBRDF
 	float dotNH = saturate(dot(worldNormal, halfVec));	// 法線とハーフベクトルの内積
 	float dotVH = saturate(dot(worldViewDir, halfVec));	// 視線ベクトルとハーフベクトルの内積
 	float dotLV = saturate(dot(lightDirection, worldViewDir));	// ライトベクトルと視線ベクトルの内積
-	float a = roughness * roughness;	// ラフネスの二乗
+	float a = material.roughness * material.roughness;	// ラフネスの二乗
 
 	// D項(GGX)
 	float D = D_GGX(a, dotNH);
 	// G項(SmithモデルのSchlick近似)
 	float G = G_Smith_Schlick(a, dotNV, dotNL);
 	// F項(Schlickの近似式)
-	float3 F = F_Schlick(specularColor, worldViewDir, halfVec);
+	float3 F = F_Schlick(specular, worldViewDir, halfVec);
 	// f(r, s) = DGF / 4(n・l)(n・v)
 	return (F * (G * D)) / (4.0 * dotNL * dotNV);
 }
@@ -87,35 +87,16 @@ float4 main(PSInput input) : SV_TARGET
 	// 正規化したワールド座標系の視線ベクトル(物体からカメラへの)
 	float3 worldViewDir = normalize(viewPosition.xyz - input.worldPosition.xyz);
 
-	// 物体表面の材質
-	Material material;
-	// 金属か非金属かを設定するパラメータ = 鏡面反射率
-	float metallic = 0.0f;
-	// 物体表面の粗さ
-	// 金属か非金属かを設定するパラメータ =
-	float roughness = 0.0f;
-	/*波長ごとの反射能 = 色ごとの反射能*/
-	float3 albedo = float3(0.0f, 0.0f, 0.0f);
-	metallic = materialTexture.roughness_metallic.y;
-	albedo = materialTexture.albedo.xyz;
-	roughness = materialTexture.roughness_metallic.x;
+	// 物体表面の材質に定数バッファーの情報をセット
+	Material material = constantMaterial;
 
-	// albedo～float3(0.0,0.0,0.0)を0～1としたうちのmetallic部分
-	material.diffuseRatioColor = lerp(albedo, float3(0.0,0.0,0.0), metallic);
-	// float3(0.04,0.04,0.04)～albedoを0～1としたうちのmetallic部分
-	material.specularRatioColor = lerp(float3(0.04,0.04,0.04), albedo, metallic);
-	material.roughness = roughness;
-
-	float3 reflectedDiffuse= float3(0.0, 0.0, 0.0);
-	float3 reflectedSpecular = float3(0.0, 0.0, 0.0);
-
-	// 	自己放射成分
-	float3 emissive = float3(0.0,0.0,0.0);
-	float opacity = 1.0;
-
+	float3 specular = lerp(0.08f * material.specular, material.baseColor, material.metallic);
 
 	// 入射光に定数バッファーの平行光源をセット
 	IncidentLight incidentLight = constantDirectionalLight;
+
+	float3 BRDF = DiffuseBRDF(material.baseColor) * (1 - material.metallic) +
+		SpecularBRDF(incidentLight, worldNormal, worldViewDir, specular, material);
 
 	// コサイン項を計算
 	float dotNL = saturate(dot(worldNormal, incidentLight.direction));
@@ -125,15 +106,10 @@ float4 main(PSInput input) : SV_TARGET
 	irradiance *= PI;
 
 	// レンダリング方程式より反射成分 = BRDF * 放射照度(放射輝度 * コサイン項)
-	// 拡散反射成分
-	reflectedDiffuse += DiffuseBRDF(material.diffuseRatioColor) * irradiance;
-	// 鏡面反射成分
-	reflectedSpecular += 
-		SpecularBRDF(incidentLight, worldNormal, worldViewDir, material.specularRatioColor, material.roughness) * irradiance;
-	// 放射輝度 = 自己放射　+ 反射成分(直接光の拡散反射成分 + 直接光の鏡面反射成分)
-	float3 Radiance = emissive + reflectedDiffuse + reflectedSpecular;
+	float3 Radiance = BRDF * irradiance;
+
 	float4 texel = diffuseTexture.Sample(diffuseTextureSampler, input.texCoord);
-	return float4(texel.xyz* Radiance, texel.w*opacity);
+	return float4(texel.xyz* Radiance, texel.w*1.0f);
 	// return float4(outgoingLight, opacity);
 }
 

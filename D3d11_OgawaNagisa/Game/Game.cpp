@@ -476,9 +476,10 @@ int Game::Run()
 	// 物体表面の質感
 	struct ConstantMaterial
 	{
-		//XMFLOAT4 roughness_metallic = XMFLOAT4(0.9f, 0.0f, 0, 0);
-		XMFLOAT4 roughness_metallic = XMFLOAT4(0.5f,1.0f, 0, 0);
-		XMFLOAT4 albedo = XMFLOAT4(1.0f, 0.766f, 0.336, 0.0f);
+		XMFLOAT3 baseColor = XMFLOAT3(1.0f, 1.0f, 1.0f);
+		float metallic = 1.0f;
+		XMFLOAT3 specular = XMFLOAT3(0.5f, 0.5f, 0.5f);
+		float roughness = 0.5f;
 	};
 
 	struct ConstantMatricesBuffer
@@ -627,7 +628,7 @@ int Game::Run()
 		XMStoreFloat4x4(&constantMatricesBuffer.viewMatrix, XMMatrixTranspose(viewMatrix));
 		XMStoreFloat4x4(&constantMatricesBuffer.projectionMatrix, XMMatrixTranspose(projectonMatrix));
 		XMStoreFloat4x4(&constantMatricesBuffer.worldViewProjectionMatrix, XMMatrixTranspose(worldMatrix* viewMatrix* projectonMatrix));
-		XMStoreFloat4(&constantMatricesBuffer.viewPosition, viewPosition);
+		// XMStoreFloat4(&constantMatricesBuffer.viewPosition, viewPosition);
 
 		// 定数バッファーを更新
 		constantBuffer->SetData(&constantMatricesBuffer);
