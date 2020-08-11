@@ -2,15 +2,19 @@
 // VertexShader.cpp
 // 
 //=============================================================================
+#include "stdafx.h"
+#include "Game.h"
 #include <d3dcompiler.h>
 #include "VertexShader.h"
-#include "Game.h"
 #include "DirectXHelper.h"
+
+using namespace DX;
 
 namespace
 {
 	// ファイルからシェーダーをコンパイルします。
-	ID3DBlob* CompileShaderFromFile(LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
+	ID3DBlob* CompileShaderFromFile(
+		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
 	{
 		ID3DBlob* retVal = nullptr;
 		ID3DBlob* errorMsgs = nullptr;
@@ -31,11 +35,11 @@ namespace
 			return retVal;
 		}
 		catch (...) {
-			SAFE_RELEASE(retVal);
+			SafeRelease(retVal);
 			if (errorMsgs != nullptr) {
 				auto message = static_cast<LPCSTR>(errorMsgs->GetBufferPointer());
 				OutputDebugStringA(message);
-				SAFE_RELEASE(errorMsgs);
+				SafeRelease(errorMsgs);
 			}
 			throw;
 		}
@@ -44,7 +48,8 @@ namespace
 }
 
 // このクラスのインスタンスを作成します。
-VertexShader* VertexShader::Create(const void* shaderBytecode, SIZE_T bytecodeLength)
+VertexShader* VertexShader::Create(
+	GraphicsDevice* graphicsDevice, const void* shaderBytecode, SIZE_T bytecodeLength)
 {
 	VertexShader* retVal = nullptr;
 	ID3D11VertexShader* nativePointer = nullptr;
@@ -52,32 +57,32 @@ VertexShader* VertexShader::Create(const void* shaderBytecode, SIZE_T bytecodeLe
 	try {
 		// シェーダーを作成
 		DX::ThrowIfFailed(
-			Graphics::GetGraphicsDevice()->CreateVertexShader(
-				shaderBytecode,		// コンパイルされたシェーダーのポインター
-				bytecodeLength,		// コンパイルされた頂点シェーダ―のサイズ
-				NULL,	// クラスリンケージインターフェイスへのポインター
+			graphicsDevice->GetDevice()->CreateVertexShader(
+				shaderBytecode, bytecodeLength,
+				NULL,
 				&nativePointer));
 		// 引数で指定されたバイトコードのコピーを作成
 		DX::ThrowIfFailed(D3DCreateBlob(bytecodeLength, &blob));
 		CopyMemory(blob->GetBufferPointer(), shaderBytecode, bytecodeLength);
 		// このクラスのインスタンスを初期化
-		retVal = new VertexShader(nativePointer, blob);
-		SAFE_RELEASE(nativePointer);
-		SAFE_RELEASE(blob);
+		retVal = new VertexShader(graphicsDevice, nativePointer, blob);
+		SafeRelease(nativePointer);
+		SafeRelease(blob);
 
 		return retVal;
 	}
 	catch (...) {
-		SAFE_RELEASE(nativePointer);
-		SAFE_RELEASE(blob);
-		SAFE_DELETE(retVal);
+		SafeRelease(nativePointer);
+		SafeRelease(blob);
+		SafeDelete(retVal);
 		throw;
 	}
 	return nullptr;
 }
 
 // このクラスのインスタンスを作成します。
-VertexShader* VertexShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
+VertexShader* VertexShader::Create(
+	GraphicsDevice* graphicsDevice, LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
 {
 	VertexShader* retVal = nullptr;
 	ID3D11VertexShader* nativePointer = nullptr;
@@ -87,22 +92,22 @@ VertexShader* VertexShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCSTR t
 		shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
 		// シェーダーを作成
 		DX::ThrowIfFailed(
-			Graphics::GetGraphicsDevice()->CreateVertexShader(
+			graphicsDevice->GetDevice()->CreateVertexShader(
 				shaderBytecode->GetBufferPointer(),
 				shaderBytecode->GetBufferSize(),
 				NULL,
 				&nativePointer));
 		// このクラスのインスタンスを初期化
-		retVal = new VertexShader(nativePointer, shaderBytecode);
-		SAFE_RELEASE(nativePointer);
-		SAFE_RELEASE(shaderBytecode);
+		retVal = new VertexShader(graphicsDevice, nativePointer, shaderBytecode);
+		SafeRelease(nativePointer);
+		SafeRelease(shaderBytecode);
 
 		return retVal;
 	}
 	catch (...) {
-		SAFE_RELEASE(shaderBytecode);
-		SAFE_RELEASE(nativePointer);
-		SAFE_DELETE(retVal);
+		SafeRelease(shaderBytecode);
+		SafeRelease(nativePointer);
+		SafeDelete(retVal);
 		throw;
 	}
 	return nullptr;
@@ -110,7 +115,9 @@ VertexShader* VertexShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCSTR t
 
 // このクラスのインスタンスを初期化します。
 VertexShader::VertexShader(
+	GraphicsDevice* graphicsDevice,
 	ID3D11VertexShader* nativePointer, ID3DBlob* shaderBytecode)
+	: GraphicsResource(graphicsDevice)
 {
 	nativePointer->AddRef();
 	shaderBytecode->AddRef();
@@ -121,8 +128,8 @@ VertexShader::VertexShader(
 // デストラクター
 VertexShader::~VertexShader()
 {
-	SAFE_RELEASE(shaderBytecode);
-	SAFE_RELEASE(nativePointer);
+	SafeRelease(shaderBytecode);
+	SafeRelease(nativePointer);
 }
 
 // ネイティブ実装のポインターを取得します。

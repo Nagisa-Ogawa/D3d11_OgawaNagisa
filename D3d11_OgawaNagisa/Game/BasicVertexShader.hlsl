@@ -12,7 +12,21 @@
 //	return output;
 //}
 
-float4 main(float4 pos : POSITION) : SV_POSITION
+cbuffer ConstantBufferForCamera : register(b0)
 {
-	return pos;
+	matrix view;		// ビュー変換行列
+	matrix projection;	// プロジェクション変換行列
+};
+
+cbuffer ConstantBufferForPerFrame : register(b1)
+{
+	matrix world;	// ワールド変換行列
+};
+
+float4 main(float4 position : POSITION) : SV_POSITION
+{
+	float4 worldPosition = mul(world, position);
+	float4 viewPosition = mul(view, worldPosition);
+	float4 projectionPosition = mul(projection, viewPosition);
+	return projectionPosition;
 }

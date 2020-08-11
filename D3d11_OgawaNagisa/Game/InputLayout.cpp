@@ -2,12 +2,14 @@
 // InputLayout.cpp
 // 
 //=============================================================================
+#include "stdafx.h"
 #include "InputLayout.h"
 #include "Game.h"
 #include "DirectXHelper.h"
 
 // このクラスのインスタンスを作成します。
 InputLayout* InputLayout::Create(
+	GraphicsDevice* graphicsDevice,
 	const D3D11_INPUT_ELEMENT_DESC* inputElementDescs, UINT numElements,
 	ID3DBlob* shaderBytecodeWithInputSignature)
 {
@@ -15,27 +17,29 @@ InputLayout* InputLayout::Create(
 	ID3D11InputLayout* nativePointer = nullptr;
 	try {
 		DX::ThrowIfFailed(
-			Graphics::GetGraphicsDevice()->CreateInputLayout(
+			graphicsDevice->GetDevice()->CreateInputLayout(
 				inputElementDescs, numElements,
 				shaderBytecodeWithInputSignature->GetBufferPointer(),
 				shaderBytecodeWithInputSignature->GetBufferSize(),
 				&nativePointer));
 		// このクラスのインスタンスを初期化
-		retVal = new InputLayout(nativePointer);
-		SAFE_RELEASE(nativePointer);
+		retVal = new InputLayout(graphicsDevice, nativePointer);
+		SafeRelease(nativePointer);
 
 		return retVal;
 	}
 	catch (...) {
-		SAFE_RELEASE(nativePointer);
-		SAFE_DELETE(retVal);
+		SafeRelease(nativePointer);
+		SafeDelete(retVal);
 		throw;
 	}
 	return nullptr;
 }
 
 // このクラスのインスタンスを初期化します。
-InputLayout::InputLayout(ID3D11InputLayout* nativePointer)
+InputLayout::InputLayout(
+	GraphicsDevice* graphicsDevice, ID3D11InputLayout* nativePointer)
+	: GraphicsResource(graphicsDevice)
 {
 	nativePointer->AddRef();
 	this->nativePointer = nativePointer;
@@ -44,7 +48,7 @@ InputLayout::InputLayout(ID3D11InputLayout* nativePointer)
 // デストラクター
 InputLayout::~InputLayout()
 {
-	SAFE_RELEASE(nativePointer);
+	SafeRelease(nativePointer);
 }
 
 // ネイティブ実装のポインターを取得します。

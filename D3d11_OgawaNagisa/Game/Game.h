@@ -20,8 +20,6 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include <wrl/client.h>
-#include <DirectXColors.h>
 
 #include "Graphics.h"
 
@@ -41,6 +39,8 @@ private:
 
 	// すでに初期化済みの場合にtrue、それ以外はfalse
 	bool isInitialized = false;
+	// メイン ウィンドウ
+	GameWindow* window = nullptr;
 	// グラフィックス機能
 	Graphics* graphics = nullptr;
 

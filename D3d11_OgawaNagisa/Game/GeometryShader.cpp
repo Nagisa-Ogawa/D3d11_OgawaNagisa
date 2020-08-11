@@ -2,10 +2,13 @@
 // GeometryShader.cpp
 // 
 //=============================================================================
+#include "stdafx.h"
+#include "Game.h"
 #include <d3dcompiler.h>
 #include "GeometryShader.h"
-#include "Game.h"
 #include "DirectXHelper.h"
+
+using namespace DX;
 
 namespace
 {
@@ -31,39 +34,39 @@ namespace
 			return retVal;
 		}
 		catch (...) {
-			SAFE_RELEASE(retVal);
+			SafeRelease(retVal);
 			if (errorMsgs != nullptr) {
 				auto message = static_cast<LPCSTR>(errorMsgs->GetBufferPointer());
 				OutputDebugStringA(message);
-				SAFE_RELEASE(errorMsgs);
+				SafeRelease(errorMsgs);
 			}
 			throw;
 		}
 		return nullptr;
 	}
-
 }
 
 // このクラスのインスタンスを作成します。
-GeometryShader* GeometryShader::Create(const void* shaderBytecode, SIZE_T bytecodeLength)
+GeometryShader* GeometryShader::Create(
+	GraphicsDevice* graphicsDevice, const void* shaderBytecode, SIZE_T bytecodeLength)
 {
 	GeometryShader* retVal = nullptr;
 	ID3D11GeometryShader* nativePointer = nullptr;
 	try {
 		// シェーダーを作成
 		DX::ThrowIfFailed(
-			Graphics::GetGraphicsDevice()->CreateGeometryShader(
+			graphicsDevice->GetDevice()->CreateGeometryShader(
 				shaderBytecode, bytecodeLength,
 				NULL,
 				&nativePointer));
 		// このクラスのインスタンスを初期化
-		retVal = new GeometryShader(nativePointer);
-		SAFE_RELEASE(nativePointer);
+		retVal = new GeometryShader(graphicsDevice, nativePointer);
+		SafeRelease(nativePointer);
 
 		return retVal;
 	}
 	catch (...) {
-		SAFE_RELEASE(nativePointer);
+		SafeRelease(nativePointer);
 		delete retVal;
 		throw;
 	}
@@ -71,7 +74,8 @@ GeometryShader* GeometryShader::Create(const void* shaderBytecode, SIZE_T byteco
 }
 
 // このクラスのインスタンスを作成します。
-GeometryShader* GeometryShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
+GeometryShader* GeometryShader::Create(
+	GraphicsDevice* graphicsDevice, LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
 {
 	GeometryShader* retVal = nullptr;
 	ID3DBlob* shaderBytecode = nullptr;
@@ -79,14 +83,14 @@ GeometryShader* GeometryShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCS
 		// シェーダーをコンパイル
 		shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
 		// このクラスのインスタンスを作成
-		retVal = Create(shaderBytecode->GetBufferPointer(), shaderBytecode->GetBufferSize());
+		retVal = Create(graphicsDevice, shaderBytecode->GetBufferPointer(), shaderBytecode->GetBufferSize());
 		// コンパイルしたバイトコードは不要なので削除
-		SAFE_RELEASE(shaderBytecode);
+		SafeRelease(shaderBytecode);
 
 		return retVal;
 	}
 	catch (...) {
-		SAFE_RELEASE(shaderBytecode);
+		SafeRelease(shaderBytecode);
 		delete retVal;
 		throw;
 	}
@@ -94,7 +98,9 @@ GeometryShader* GeometryShader::Create(LPCWSTR fileName, LPCSTR entryPoint, LPCS
 }
 
 // このクラスのインスタンスを初期化します。
-GeometryShader::GeometryShader(ID3D11GeometryShader* nativePointer)
+GeometryShader::GeometryShader(
+	GraphicsDevice* graphicsDevice, ID3D11GeometryShader* nativePointer)
+	: GraphicsResource(graphicsDevice)
 {
 	nativePointer->AddRef();
 	this->nativePointer = nativePointer;
@@ -103,7 +109,7 @@ GeometryShader::GeometryShader(ID3D11GeometryShader* nativePointer)
 // デストラクター
 GeometryShader::~GeometryShader()
 {
-	SAFE_RELEASE(nativePointer);
+	SafeRelease(nativePointer);
 }
 
 // ネイティブ実装のポインターを取得します。
