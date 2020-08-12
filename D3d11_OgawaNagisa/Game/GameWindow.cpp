@@ -35,7 +35,8 @@ namespace
 }
 
 // メイン ウィンドウを初期化します。
-GameWindow* GameWindow::Create(LPCWSTR title, int width, int height)
+std::shared_ptr<GameWindow> GameWindow::Create(
+	LPCWSTR title, int width, int height)
 {
 	GameWindow* retVal = nullptr;
 	HINSTANCE hInstance = NULL;
@@ -80,8 +81,8 @@ GameWindow* GameWindow::Create(LPCWSTR title, int width, int height)
 		ShowWindow(hWnd, SW_SHOWNORMAL);
 		UpdateWindow(hWnd);
 
-		retVal = new GameWindow(title, width, height, hWnd);
-		return retVal;
+		return std::shared_ptr<GameWindow>(
+			new GameWindow(title, width, height, hWnd));
 	}
 	catch (...) {
 		DestroyWindow(hWnd);
@@ -89,33 +90,6 @@ GameWindow* GameWindow::Create(LPCWSTR title, int width, int height)
 		throw;
 	}
 	return nullptr;
-}
-
-// メイン ウィンドウを破棄します。
-void GameWindow::Close()
-{
-	auto result = DestroyWindow(hWnd);
-	if (result == 0) {
-		throw win32_exception(GetLastError());
-	}
-}
-
-// クライアント領域の幅を取得します。
-int GameWindow::GetWidth() const
-{
-	return width;
-}
-
-// クライアント領域の高さを取得します。
-int GameWindow::GetHeight() const
-{
-	return height;
-}
-
-// ウィンドウ ハンドルを取得します。
-HWND GameWindow::GetHwnd() const
-{
-	return hWnd;
 }
 
 // このクラスのインスタンスを初期化します。
@@ -143,4 +117,31 @@ GameWindow::~GameWindow()
 			NULL);
 		OutputDebugStringA(message);
 	}
+}
+
+// メイン ウィンドウを破棄します。
+void GameWindow::Close()
+{
+	auto result = DestroyWindow(hWnd);
+	if (result == 0) {
+		throw win32_exception(GetLastError());
+	}
+}
+
+// クライアント領域の幅を取得します。
+int GameWindow::GetWidth() const
+{
+	return width;
+}
+
+// クライアント領域の高さを取得します。
+int GameWindow::GetHeight() const
+{
+	return height;
+}
+
+// ウィンドウ ハンドルを取得します。
+HWND GameWindow::GetHwnd() const
+{
+	return hWnd;
 }

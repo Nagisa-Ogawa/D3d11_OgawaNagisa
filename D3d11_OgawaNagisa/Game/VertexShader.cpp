@@ -3,11 +3,12 @@
 // 
 //=============================================================================
 #include "stdafx.h"
-#include "Game.h"
+#include "Graphics.h"
 #include <d3dcompiler.h>
-#include "VertexShader.h"
 #include "DirectXHelper.h"
 
+using namespace std;
+using namespace Microsoft::WRL;
 using namespace DX;
 
 namespace
@@ -25,7 +26,7 @@ namespace
 			creationFlags |= D3DCOMPILE_DEBUG;
 #endif
 			// シェーダーをコンパイル
-			DX::ThrowIfFailed(
+			ThrowIfFailed(
 				D3DCompileFromFile(
 					fileName,
 					NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -48,98 +49,68 @@ namespace
 }
 
 // このクラスのインスタンスを作成します。
-VertexShader* VertexShader::Create(
-	GraphicsDevice* graphicsDevice, const void* shaderBytecode, SIZE_T bytecodeLength)
+std::shared_ptr<VertexShader> VertexShader::Create(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	const void* shaderBytecode, SIZE_T bytecodeLength)
 {
-	VertexShader* retVal = nullptr;
-	ID3D11VertexShader* nativePointer = nullptr;
-	ID3DBlob* blob = nullptr;
-	try {
-		// シェーダーを作成
-		DX::ThrowIfFailed(
-			graphicsDevice->GetDevice()->CreateVertexShader(
-				shaderBytecode, bytecodeLength,
-				NULL,
-				&nativePointer));
-		// 引数で指定されたバイトコードのコピーを作成
-		DX::ThrowIfFailed(D3DCreateBlob(bytecodeLength, &blob));
-		CopyMemory(blob->GetBufferPointer(), shaderBytecode, bytecodeLength);
-		// このクラスのインスタンスを初期化
-		retVal = new VertexShader(graphicsDevice, nativePointer, blob);
-		SafeRelease(nativePointer);
-		SafeRelease(blob);
+	// シェーダーを作成
+	ComPtr<ID3D11VertexShader> nativePointer;
+	ThrowIfFailed(
+		graphicsDevice->GetDevice()->CreateVertexShader(
+			shaderBytecode, bytecodeLength,
+			NULL,
+			&nativePointer));
+	// 引数で指定されたバイトコードのコピーを作成
+	ComPtr<ID3DBlob> blob;
+	ThrowIfFailed(D3DCreateBlob(bytecodeLength, &blob));
+	CopyMemory(blob->GetBufferPointer(), shaderBytecode, bytecodeLength);
+	// このクラスのインスタンスを初期化
+	shared_ptr<VertexShader> retVal(
+		new VertexShader(graphicsDevice, nativePointer, blob));
 
-		return retVal;
-	}
-	catch (...) {
-		SafeRelease(nativePointer);
-		SafeRelease(blob);
-		SafeDelete(retVal);
-		throw;
-	}
-	return nullptr;
+	return retVal;
 }
 
 // このクラスのインスタンスを作成します。
-VertexShader* VertexShader::Create(
-	GraphicsDevice* graphicsDevice, LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
+std::shared_ptr<VertexShader> VertexShader::Create(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
 {
-	VertexShader* retVal = nullptr;
-	ID3D11VertexShader* nativePointer = nullptr;
-	ID3DBlob* shaderBytecode = nullptr;
-	try {
-		// シェーダーをコンパイル
-		shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
-		// シェーダーを作成
-		DX::ThrowIfFailed(
-			graphicsDevice->GetDevice()->CreateVertexShader(
-				shaderBytecode->GetBufferPointer(),
-				shaderBytecode->GetBufferSize(),
-				NULL,
-				&nativePointer));
-		// このクラスのインスタンスを初期化
-		retVal = new VertexShader(graphicsDevice, nativePointer, shaderBytecode);
-		SafeRelease(nativePointer);
-		SafeRelease(shaderBytecode);
-
-		return retVal;
-	}
-	catch (...) {
-		SafeRelease(shaderBytecode);
-		SafeRelease(nativePointer);
-		SafeDelete(retVal);
-		throw;
-	}
-	return nullptr;
+	// シェーダーをコンパイル
+	ComPtr<ID3DBlob> shaderBytecode;
+	shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
+	// シェーダーを作成
+	ComPtr<ID3D11VertexShader> nativePointer;
+	ThrowIfFailed(
+		graphicsDevice->GetDevice()->CreateVertexShader(
+			shaderBytecode->GetBufferPointer(),
+			shaderBytecode->GetBufferSize(),
+			NULL,
+			&nativePointer));
+	// このクラスのインスタンスを初期化
+	return shared_ptr<VertexShader>(
+		new VertexShader(graphicsDevice, nativePointer, shaderBytecode));
 }
 
 // このクラスのインスタンスを初期化します。
 VertexShader::VertexShader(
-	GraphicsDevice* graphicsDevice,
-	ID3D11VertexShader* nativePointer, ID3DBlob* shaderBytecode)
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> nativePointer,
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecode)
 	: GraphicsResource(graphicsDevice)
 {
-	nativePointer->AddRef();
-	shaderBytecode->AddRef();
 	this->nativePointer = nativePointer;
 	this->shaderBytecode = shaderBytecode;
 }
 
-// デストラクター
-VertexShader::~VertexShader()
-{
-	SafeRelease(shaderBytecode);
-	SafeRelease(nativePointer);
-}
-
 // ネイティブ実装のポインターを取得します。
-ID3D11VertexShader* VertexShader::GetNativePointer()
+Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader::GetNativePointer()
 {
 	return nativePointer;
 }
 
 // このシェーダーのバイトコードを取得します。
-ID3DBlob* VertexShader::GetShaderBytecode()
+Microsoft::WRL::ComPtr<ID3DBlob> VertexShader::GetShaderBytecode()
 {
 	return shaderBytecode;
 }

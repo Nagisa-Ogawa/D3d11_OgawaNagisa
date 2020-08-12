@@ -4,23 +4,10 @@
 //=============================================================================
 #pragma once
 
-// CRTによるメモリーリーク検出
-#if defined(DEBUG) || defined(_DEBUG)
-#define _CRTDBG_MAP_ALLOC	// メモリリーク時にメモリリークを起こしたファイル名や行などが分かる
-#include <stdlib.h>
-#include <crtdbg.h>		// Debug用の追跡可能な_malloc_dbgや_free_dbgが使える
-// new 演算子の再定義
-#ifndef DBG_NEW
-// new演算子をブロックの種類、ファイル、行番号を表示するデバッグ用に置き換え
-#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-#define new DBG_NEW
-#endif
-#endif
-
+#include <memory>
+#include <wrl.h>
 #include <Windows.h>
-#include <d3d11.h>
 #include <DirectXMath.h>
-
 #include "Graphics.h"
 
 // アプリケーション全体を表します。
@@ -40,20 +27,134 @@ private:
 	// すでに初期化済みの場合にtrue、それ以外はfalse
 	bool isInitialized = false;
 	// メイン ウィンドウ
-	GameWindow* window = nullptr;
+	std::shared_ptr<GameWindow> window;
 	// グラフィックス機能
-	Graphics* graphics = nullptr;
-
-
-	DirectX::XMVECTORF32 clearColor = { 53 / 255.0f, 70 / 255.0f, 166 / 255.0f, 1.0f };
-	// ビューポート
-	D3D11_VIEWPORT viewport = {};
+	std::shared_ptr<Graphics> graphics;
 
 	// 初期化の際に呼び出されます。
 	void OnInitialize(LPCWSTR windowTitle, int screenWidth, int screenHeight);
 	// メッセージループを実行する際に呼び出されます。
 	int OnRun();
 
+};
+
+// トランスフォーム
+class Transform final
+{
+public:
+	// このクラスの新しいインスタンスを作成します。
+	static std::shared_ptr<Transform> Create();
+
+	DirectX::XMVECTOR scale = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
+	DirectX::XMVECTOR position = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	DirectX::XMMATRIX GetWorldMatrix() const;
+
+private:
+	// インスタンス生成を禁止
+	Transform();
+	// コピーと代入演算を禁止
+	Transform(const Transform&) {}
+	Transform& operator=(const Transform&) { return *this; }
+};
+
+// カメラを表します。
+class Camera
+{
+public:
+	// このクラスの新しいインスタンスを作成します。
+	static std::shared_ptr<Camera> Create(std::shared_ptr<GameWindow> window);
+
+	// 画面クリアーに使用するカラー
+	DirectX::XMVECTORF32 clearColor = { 53 / 255.0f, 70 / 255.0f, 166 / 255.0f, 1.0f };
+	// 視点の位置座標
+	DirectX::XMVECTOR eyePosition = { 0.0f, 1.0f, -10.0f, 1.0f };
+	// 注視点
+	DirectX::XMVECTOR focusPosition = { 0.0f, 1.0f, 0.0f, 1.0f };
+	// カメラの UP ベクトル
+	DirectX::XMVECTOR upDirection = { 0.0f, 1.0f, 0.0f, 0.0f };
+	// プロジェクション パラメーター
+	float fov = DirectX::XM_PIDIV4;
+	float aspectHeightByWidth = 640.0f / 480;
+	float nearZ = 0.1f;
+	float farZ = 1000.0f;
+	// ビューポート
+	D3D11_VIEWPORT viewport = { 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1.0f };
+
+	// ビュー変換行列を取得します。
+	DirectX::XMMATRIX GetViewMatrix() const;
+	// プロジェクション変換行列を取得します。
+	DirectX::XMMATRIX GetProjectionMatrix() const;
+
+	// このオブジェクトを初期化する際に一度呼び出されます。
+	void Start();
+
+private:
+	std::shared_ptr<GameWindow> window;
+
+	// インスタンス生成を禁止
+	Camera(std::shared_ptr<GameWindow> window);
+	// コピーと代入演算を禁止
+	Camera(const Camera&) {}
+	Camera& operator=(const Camera&) { return *this; }
+};
+
+// ゲーム画面を表します。
+class Scene
+{
+public:
+	// このクラスの新しいインスタンスを作成します。
+	static Scene* Create(
+		std::shared_ptr<GameWindow> window, std::shared_ptr<Graphics> graphics);
+
+	// シーンを初期化する際に呼び出されます。
+	void Start();
+	// フレームを更新する際に呼び出されます。
+	void Update(float time, float elapsedTime);
+	// フレームを描画する際に呼び出されます。
+	void Draw(float time, float elapsedTime);
+
+private:
+	// このシーンと関連付けられたウィンドウ
+	std::shared_ptr<GameWindow> window;
+	// このシーンと関連付けられたグラフィックス機能
+	std::shared_ptr<Graphics> graphics;
+
+	// カメラ パラメーターのための定数バッファーの定義
+	struct ConstantBufferDescForCamera
+	{
+		DirectX::XMMATRIX view;
+		DirectX::XMMATRIX projection;
+	};
+	// カメラ用の定数バッファー
+	std::shared_ptr<ConstantBuffer> constantBufferForCamera;
+
+	// フレームごとに更新される定数バッファーの定義
+	struct ConstantBufferDescForPerFrame
+	{
+		DirectX::XMMATRIX world;
+	};
+	// フレームごとに更新されるの定数バッファー
+	std::shared_ptr<ConstantBuffer> constantBufferForPerFrame;
+
+	// カメラ オブジェクト
+	std::shared_ptr<Camera> camera;
+
+	// トランスフォーム
+	std::shared_ptr<Transform> transform;
+	// メッシュ
+	std::shared_ptr<Mesh> mesh;
+	// レンダリング
+	std::shared_ptr<MeshRenderer> renderer;
+
+	// インスタンス生成を禁止
+	Scene(
+		std::shared_ptr<GameWindow> window,
+		std::shared_ptr<Graphics> graphics);
+	// コピーと代入演算を禁止
+	Scene(const Scene&) {}
+	Scene& operator=(const Scene&) { return *this; }
 };
 
 //// 位置座標のみを頂点情報に持つデータを表します。

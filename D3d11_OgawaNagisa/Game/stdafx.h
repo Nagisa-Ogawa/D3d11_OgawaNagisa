@@ -14,16 +14,22 @@
 // Windows ヘッダー ファイル:
 #include <windows.h>
 
-// CRTによるメモリーリーク検出
 #if defined(DEBUG) || defined(_DEBUG)
+// CRTによるメモリーリーク検出
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
+#include <memory>
+#include <wrl.h>
 // new 演算子の再定義
 #ifndef DBG_NEW
 #define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
 #define new DBG_NEW
 #endif
+#else
+#include <stdlib.h>
+#include <memory>
+#include <wrl.h>
 #endif
 
 #include <exception>

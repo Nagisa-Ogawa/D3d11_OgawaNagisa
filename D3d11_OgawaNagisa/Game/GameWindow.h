@@ -4,6 +4,7 @@
 //=============================================================================
 #pragma once
 
+#include <memory>
 #include <Windows.h>
 
 // メイン ウィンドウを表します。
@@ -11,7 +12,8 @@ class GameWindow final
 {
 public:
 	// メイン ウィンドウを初期化します。
-	static GameWindow* Create(LPCWSTR title, int width, int height);
+	static std::shared_ptr<GameWindow> Create(
+		LPCWSTR title, int width, int height);
 
 	// メイン ウィンドウを破棄します。
 	void Close();

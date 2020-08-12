@@ -3,11 +3,12 @@
 // 
 //=============================================================================
 #include "stdafx.h"
-#include "Game.h"
+#include "Graphics.h"
 #include <d3dcompiler.h>
-#include "PixelShader.h"
 #include "DirectXHelper.h"
 
+using namespace std;
+using namespace Microsoft::WRL;
 using namespace DX;
 
 namespace
@@ -24,7 +25,7 @@ namespace
 			creationFlags |= D3DCOMPILE_DEBUG;
 #endif
 			// シェーダーをコンパイル
-			DX::ThrowIfFailed(
+			ThrowIfFailed(
 				D3DCompileFromFile(
 					fileName,
 					NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -47,73 +48,45 @@ namespace
 }
 
 // このクラスのインスタンスを作成します。
-PixelShader* PixelShader::Create(
-	GraphicsDevice* graphicsDevice, const void* shaderBytecode, SIZE_T bytecodeLength)
+std::shared_ptr<PixelShader> PixelShader::Create(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	const void* shaderBytecode, SIZE_T bytecodeLength)
 {
-	PixelShader* retVal = nullptr;
-	ID3D11PixelShader* nativePointer = nullptr;
-	try {
-		// シェーダーを作成
-		DX::ThrowIfFailed(
-			graphicsDevice->GetDevice()->CreatePixelShader(
-				shaderBytecode, bytecodeLength,
-				NULL,
-				&nativePointer));
-		// このクラスのインスタンスを初期化
-		retVal = new PixelShader(graphicsDevice, nativePointer);
-		SafeRelease(nativePointer);
-
-		return retVal;
-	}
-	catch (...) {
-		SafeRelease(nativePointer);
-		delete retVal;
-		throw;
-	}
-	return nullptr;
+	// シェーダーを作成
+	ComPtr<ID3D11PixelShader> nativePointer;
+	ThrowIfFailed(
+		graphicsDevice->GetDevice()->CreatePixelShader(
+			shaderBytecode, bytecodeLength,
+			NULL,
+			&nativePointer));
+	// このクラスのインスタンスを初期化
+	return shared_ptr<PixelShader>(
+		new PixelShader(graphicsDevice, nativePointer));
 }
 
 // このクラスのインスタンスを作成します。
-PixelShader* PixelShader::Create(
-	GraphicsDevice* graphicsDevice, LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
+std::shared_ptr<PixelShader> PixelShader::Create(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target)
 {
-	PixelShader* retVal = nullptr;
-	ID3DBlob* shaderBytecode = nullptr;
-	try {
-		// シェーダーをコンパイル
-		shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
-		// このクラスのインスタンスを作成
-		retVal = Create(graphicsDevice, shaderBytecode->GetBufferPointer(), shaderBytecode->GetBufferSize());
-		// コンパイルしたバイトコードは不要なので削除
-		SafeRelease(shaderBytecode);
-
-		return retVal;
-	}
-	catch (...) {
-		SafeRelease(shaderBytecode);
-		delete retVal;
-		throw;
-	}
-	return nullptr;
+	// シェーダーをコンパイル
+	ComPtr<ID3DBlob> shaderBytecode;
+	shaderBytecode = CompileShaderFromFile(fileName, entryPoint, target);
+	// このクラスのインスタンスを作成
+	return Create(graphicsDevice, shaderBytecode->GetBufferPointer(), shaderBytecode->GetBufferSize());
 }
 
 // このクラスのインスタンスを初期化します。
 PixelShader::PixelShader(
-	GraphicsDevice* graphicsDevice, ID3D11PixelShader* nativePointer)
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> nativePointer)
 	: GraphicsResource(graphicsDevice)
 {
-	nativePointer->AddRef();
 	this->nativePointer = nativePointer;
 }
 
-// デストラクター
-PixelShader::~PixelShader()
-{
-	SafeRelease(nativePointer);
-}
-
 // ネイティブ実装のポインターを取得します。
-ID3D11PixelShader* PixelShader::GetNativePointer()
+Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader::GetNativePointer()
 {
 	return nativePointer;
 }
