@@ -9,6 +9,7 @@
 #include "BasicGeometryShader.h"
 #include "BasicPixelShader.h"
 #include "PhongPixelShader.h"
+#include "CustomPixelShader.h"
 
 using namespace std;
 using namespace DirectX;
@@ -33,8 +34,10 @@ void Scene::Start()
 	// 定数バッファーを作成
 	constantBufferForCamera.reset(
 		new ConstantBuffer(graphicsDevice, sizeof(ConstantBufferDescForCamera)));
-	constantBufferForLighting.reset(
-		new ConstantBuffer(graphicsDevice, sizeof(ConstantBufferDescForLighting)));
+	//constantBufferForLighting.reset(
+	//	new ConstantBuffer(graphicsDevice, sizeof(ConstantBufferDescForLighting)));
+	constantBufferForCustomLighting.reset(
+		new ConstantBuffer(graphicsDevice, sizeof(ConstantBufferDescForCustomLighting)));
 	constantBufferForPerFrame.reset(
 		new ConstantBuffer(graphicsDevice, sizeof(ConstantBufferDescForPerFrame)));
 
@@ -157,7 +160,7 @@ void Scene::Start()
 			shared_ptr<GeometryShader>(
 				new GeometryShader(graphicsDevice, g_BasicGeometryShader)),
 			shared_ptr<PixelShader>(
-				new PixelShader(graphicsDevice, g_PhongPixelShader))));
+				new PixelShader(graphicsDevice, g_CustomPixelShader))));
 
 
 	std::shared_ptr<Texture2D> texture;
@@ -216,21 +219,33 @@ void Scene::Draw(float time, float elapsedTime)
 
 	// ライティング用の定数バッファーを更新
 	{
+		
+		const LightingDesc lightDesc =
+		{
+			{ -0.5f, 0.5f, -1.0f, 0.0f },
+			{ 1.0f, 1.0f, 1.0f, 0.0f },
+		};
+		const MaterialDesc materialDesc =
+		{
+			{ 1.0f, 1.0f, 1.0,  },
+			0.0f,
+			{1.0f,1.0f,1.0f},
+			0.5,
+		};
+		XMFLOAT4 cameraPosition;
+		XMStoreFloat4(&cameraPosition, camera->eyePosition);
 		// 定数バッファーを設定
-		const ConstantBufferDescForLighting srcData = {
-			{ 1.0f, 3.0f, -5.0f },
-			{ 1.0f, 1.0f, 1.0f, 1.0f },
-			{ 1.0f, 1.0f, 1.0f, 1.0f },
-			{ 0.3f, 0.3f, 0.3f, 1.0f },
-			XMFLOAT3(camera->eyePosition.m128_f32),
-			2.0f,
-			1.0f,
+		const ConstantBufferDescForCustomLighting srcData =
+		{
+			lightDesc,
+			materialDesc,
+			cameraPosition,
 		};
 		// サブリソースを更新
 		deviceContext->UpdateSubresource(
-			constantBufferForLighting->GetNativePointer().Get(), 0, NULL, &srcData, 0, 0);
+			constantBufferForCustomLighting->GetNativePointer().Get(), 0, NULL, &srcData, 0, 0);
 		ID3D11Buffer* const constantBuffers[] = {
-			constantBufferForLighting->GetNativePointer().Get(),
+			constantBufferForCustomLighting->GetNativePointer().Get(),
 		};
 		deviceContext->PSSetConstantBuffers(
 			0, ARRAYSIZE(constantBuffers), constantBuffers);

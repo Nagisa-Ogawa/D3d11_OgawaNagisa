@@ -104,6 +104,7 @@
     <FxCompile Include="BasicPixelShader.hlsl" />
     <FxCompile Include="BasicGeometryShader.hlsl" />
     <FxCompile Include="PhongPixelShader.hlsl" />
+    <FxCompile Include="CustomPixelShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BasicShader.hlsli" />

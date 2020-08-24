@@ -204,13 +204,44 @@ private:
 		DirectX::XMFLOAT4 specularLightColor;
 		DirectX::XMFLOAT4 ambientLightColor;
 
-		DirectX::XMFLOAT3 cameraPosition;
+		DirectX::XMFLOAT3 viewPosition;
 		//マテリアル プロパティ
 		float specularPower;
 		float specularIntensity;
 	};
 	// ライティング用の定数バッファー
 	std::shared_ptr<ConstantBuffer> constantBufferForLighting;
+
+#pragma region CustomPixelShader用
+
+	struct LightingDesc
+	{
+		// 平行光源の情報
+		DirectX::XMFLOAT4 direction;
+		DirectX::XMFLOAT4 color;
+	};
+
+	struct MaterialDesc
+	{
+		// 物体表面の質感
+		DirectX::XMFLOAT3 baseColor;
+		float metallic;
+		DirectX::XMFLOAT3 specular;
+		float roughness;
+	};
+
+	struct ConstantBufferDescForCustomLighting 
+	{
+		LightingDesc lightDesc;
+		MaterialDesc materialDesc;
+		DirectX::XMFLOAT4 cameraPosition;
+	};
+
+	// ライティング用の定数バッファー
+	std::shared_ptr<ConstantBuffer> constantBufferForCustomLighting;
+
+#pragma endregion
+
 
 	// フレームごとに更新される定数バッファーの定義
 	struct ConstantBufferDescForPerFrame
