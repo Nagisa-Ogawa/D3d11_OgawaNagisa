@@ -81,7 +81,7 @@ public:
 	DirectX::XMMATRIX GetWorldMatrix() const;
 
 	// このクラスの新しいインスタンスを初期化します。
-	Transform();
+	Transform(DirectX::XMVECTOR position);
 
 private:
 	// コピーと代入演算を禁止
@@ -142,7 +142,7 @@ public:
 	std::shared_ptr<MeshRenderer> renderer;
 
 	// このクラスの新しいインスタンスを初期化します。
-	GameObject(std::shared_ptr<Input> input);
+	GameObject(std::shared_ptr<Input> input,DirectX::XMVECTOR position);
 
 	// シーンを初期化する際に呼び出されます。
 	void Start();
@@ -254,7 +254,8 @@ private:
 	// カメラ オブジェクト
 	std::shared_ptr<Camera> camera;
 	// ゲームオブジェクト
-	std::shared_ptr<GameObject> gameObject;
+	std::shared_ptr<GameObject> gameObjectA;
+	std::shared_ptr<GameObject> gameObjectB;
 
 	// コピーと代入演算を禁止
 	Scene(const Scene&) {}

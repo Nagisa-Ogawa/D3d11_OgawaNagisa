@@ -8,11 +8,11 @@
 using namespace DirectX;
 
 // このクラスの新しいインスタンスを初期化します。
-GameObject::GameObject(std::shared_ptr<Input> input)
+GameObject::GameObject(std::shared_ptr<Input> input,XMVECTOR position)
 {
 	this->input = input;
 	// トランスフォームを作成
-	transform.reset(new Transform());
+	transform.reset(new Transform(position));
 }
 
 // トランスフォームを取得します。

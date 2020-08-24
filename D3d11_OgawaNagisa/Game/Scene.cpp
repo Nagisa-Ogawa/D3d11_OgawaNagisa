@@ -46,7 +46,8 @@ void Scene::Start()
 	camera->Start();
 
 
-	gameObject.reset(new GameObject(input));
+	gameObjectA.reset(new GameObject(input, XMVectorSet(-1.0f, 0.0f, 0.0f, 1.0f)));
+	gameObjectB.reset(new GameObject(input, XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f)));
 
 	// 位置座標のみをもつ頂点データの型
 	struct VertexPosition
@@ -77,7 +78,7 @@ void Scene::Start()
 	float nowVPos = 0.0f;
 
 	// 頂点データ
-	VertexPosition vertices[vertex_num];
+	VertexPosition* vertices = new VertexPosition[vertex_num];
 
 	for (int v = 0; v <= v_max; v++) {
 		for (int u = 0; u <= u_max; u++) {
@@ -124,15 +125,17 @@ void Scene::Start()
 
 	// 頂点バッファーを作成
 	shared_ptr<VertexBuffer> vertexBuffers[] = {
-		shared_ptr<VertexBuffer>(new VertexBuffer(graphicsDevice, vertices)),
+		shared_ptr<VertexBuffer>(new VertexBuffer(graphicsDevice, vertices,sizeof(VertexPosition)*vertex_num))
 	};
+
+	delete[] vertices;
 	UINT strides[] = {
 		sizeof(VertexPosition),
 	};
 	// インデックスデータの要素数
 	const int index_num = (v_max * u_max) * 6;
 	//インデックスデータの配列
-	UINT32 indices[index_num];
+	UINT32* indices = new UINT32[index_num];
 	for (int v = 0; v < v_max; v++) {
 		// 縦方向のオフセット
 		int v_offset = v * u_max;
@@ -148,9 +151,12 @@ void Scene::Start()
 		}
 	}
 
+	shared_ptr<IndexBuffer> indexBuffer(new IndexBuffer(graphicsDevice, indices,sizeof(UINT)*index_num, DXGI_FORMAT_R32_UINT));
 
-	shared_ptr<IndexBuffer> indexBuffer(new IndexBuffer(graphicsDevice, indices));
-	gameObject->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
+	delete[] indices;
+	gameObjectA->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
+	gameObjectB->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
+
 
 	// マテリアルを作成
 	shared_ptr<Material> material(
@@ -169,13 +175,15 @@ void Scene::Start()
 
 
 	// レンダラーを作成
-	gameObject->renderer.reset(new MeshRenderer(graphicsDevice, gameObject->mesh, material,texture));
+	gameObjectA->renderer.reset(new MeshRenderer(graphicsDevice, gameObjectA->mesh, material,texture));
+	gameObjectB->renderer.reset(new MeshRenderer(graphicsDevice, gameObjectB->mesh, material, texture));
 }
 
 // フレームを更新する際に呼び出されます。
 void Scene::Update(float time, float elapsedTime)
 {
-	gameObject->Update(time, elapsedTime);
+	gameObjectA->Update(time, elapsedTime);
+	gameObjectB->Update(time, elapsedTime);
 }
 
 // フレームを描画する際に呼び出されます。
@@ -260,12 +268,13 @@ void Scene::Draw(float time, float elapsedTime)
 	// ゲームオブジェクトを描画
 	{
 		// ワールド変換行列を更新
-		const ConstantBufferDescForPerFrame srcData = {
-			gameObject->GetTransform()->GetWorldMatrix(),
+		const ConstantBufferDescForPerFrame srcDataA = {
+			gameObjectA->GetTransform()->GetWorldMatrix(),
 		};
 		// サブリソースを更新
 		deviceContext->UpdateSubresource(
-			constantBufferForPerFrame->GetNativePointer().Get(), 0, NULL, &srcData, 0, 0);
+			constantBufferForPerFrame->GetNativePointer().Get(), 0, NULL, &srcDataA, 0, 0);
+
 		// 定数バッファーを設定
 		ID3D11Buffer* const constantBuffers[] = {
 			constantBufferForPerFrame->GetNativePointer().Get(),
@@ -274,5 +283,20 @@ void Scene::Draw(float time, float elapsedTime)
 			1, ARRAYSIZE(constantBuffers), constantBuffers);
 	}
 
-	gameObject->Draw(deviceContext.Get(), time, elapsedTime);
+	gameObjectA->Draw(deviceContext.Get(), time, elapsedTime);
+
+	const ConstantBufferDescForPerFrame srcDataB = {
+	gameObjectB->GetTransform()->GetWorldMatrix(),
+	};
+	deviceContext->UpdateSubresource(
+		constantBufferForPerFrame->GetNativePointer().Get(), 0, NULL, &srcDataB, 0, 0);
+	// 定数バッファーを設定
+	ID3D11Buffer* const constantBuffers[] = {
+		constantBufferForPerFrame->GetNativePointer().Get(),
+	};
+	deviceContext->VSSetConstantBuffers(
+		1, ARRAYSIZE(constantBuffers), constantBuffers);
+
+	gameObjectB->Draw(deviceContext.Get(), time, elapsedTime);
+
 }
