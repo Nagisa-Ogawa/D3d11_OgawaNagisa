@@ -17,21 +17,31 @@
 //	}
 //}
 
-struct GSOutput
+#include <BasicShader.hlsli>
+
+cbuffer ConstantBufferForCamera : register(b0)
 {
-	float4 pos : SV_POSITION;
+	matrix view;		// ビュー変換行列
+	matrix projection;	// プロジェクション変換行列
+};
+
+cbuffer ConstantBufferForPerFrame : register(b1)
+{
+	matrix world;	// ワールド変換行列
 };
 
 [maxvertexcount(3)]
 void main(
-	triangle float4 input[3] : SV_POSITION,
-	inout TriangleStream< GSOutput > output
-)
+	triangle GeometryShaderInput input[3],
+	inout TriangleStream<PixelShaderInput> output)
 {
-	for (uint i = 0; i < 3; i++)
+	for (uint index = 0; index < 3; index++)
 	{
-		GSOutput element;
-		element.pos = input[i];
+		PixelShaderInput element;
+		element.position = input[index].position;
+		element.worldPosition = input[index].worldPosition;
+		element.worldNormal = input[index].worldNormal;
+		element.texCoord = input[index].texCoord;
 		output.Append(element);
 	}
 }

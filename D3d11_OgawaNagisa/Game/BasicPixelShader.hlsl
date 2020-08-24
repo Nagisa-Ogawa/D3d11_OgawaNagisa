@@ -113,7 +113,25 @@
 //	// return float4(outgoingLight, opacity);
 //}
 
-float4 main() : SV_TARGET
+#include <BasicShader.hlsli>
+
+cbuffer ConstantBufferForLighting : register(b0)
 {
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+	float3 lightPosition;
+	float4 diffuseLightColor;
+	float4 specularLightColor;
+	float4 ambientLightColor;
+};
+
+float4 main(PixelShaderInput input) : SV_TARGET
+{
+	//ピクセル単位のディフューズを計算する
+	float3 directionToLight = normalize(lightPosition - input.worldPosition);
+	float diffuseIntensity = saturate(dot(directionToLight, input.worldNormal));
+	float4 diffuse = diffuseLightColor * diffuseIntensity;
+
+	float4 color = diffuse + ambientLightColor;
+	color.a = 1.0;
+
+	return color;
 }

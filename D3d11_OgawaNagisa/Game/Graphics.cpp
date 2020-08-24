@@ -7,61 +7,156 @@
 #include "DirectXHelper.h"
 #include <vector>
 
+using namespace std;
+using namespace Microsoft::WRL;
 using namespace DX;
 
-// グラフィックス機能を初期化します。
-std::shared_ptr<Graphics> Graphics::Create(
-	std::shared_ptr<GameWindow> gameWindow,
-	DXGI_FORMAT backBufferFormt, DXGI_FORMAT depthStencilFormt)
+/// <summary>
+/// このクラスの新しいインスタンスを初期化します。
+/// </summary>
+Output::Output(Microsoft::WRL::ComPtr<IDXGIOutput> dxgiOutput)
 {
-	// デバイス作成時のオプションフラグ
-	UINT creationFlags = 0;
-#if defined(_DEBUG)
-	// DEBUGビルドの際にDirect3Dのデバッグ表示機能を持たせる
-	creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-	// デバイス、デバイスコンテキストを作成
-	auto graphicsDevice = GraphicsDevice::Create();
-
-	// 使用可能なMSAAを取得
-	auto device = graphicsDevice->GetDevice();
-	DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
-	for (int index = 0; index <= D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; index++) {
-		UINT quality;
-		// マルチサンプリング中に利用可能な品質レベルを取得
-		if (SUCCEEDED(device->CheckMultisampleQualityLevels(
-			depthStencilFormt, index, &quality))) {
-			if (quality > 0) {
-				sampleDesc.Count = index;
-				sampleDesc.Quality = quality - 1;
-			}
-		}
-	}
-
-	// スワップチェーンを作成
-	auto swapChain = SwapChain::Create(
-		gameWindow, graphicsDevice, backBufferFormt, sampleDesc);
-	// レンダーターゲットを作成
-	auto renderTarget = RenderTarget::Create(swapChain);
-	// 深度ステンシルを作成
-	auto depthStencil = DepthStencil::Create(
-		renderTarget, depthStencilFormt);
-
-	return std::shared_ptr<Graphics>(
-		new Graphics(graphicsDevice, swapChain, renderTarget, depthStencil));
+	nativePointer = dxgiOutput;
 }
 
-// このクラスの新しいインスタンスを初期化します。
-Graphics::Graphics(
-	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	std::shared_ptr<SwapChain> swapChain,
-	std::shared_ptr<RenderTarget> renderTarget,
-	std::shared_ptr<DepthStencil> depthStencil)
+Microsoft::WRL::ComPtr<IDXGIOutput> Output::GetNativePointer()
 {
-	this->graphicsDevice = graphicsDevice;
-	this->swapChain = swapChain;
-	this->renderTarget = renderTarget;
-	this->depthStencil = depthStencil;
+	return nativePointer;
+}
+
+DXGI_OUTPUT_DESC Output::GetDesc() const
+{
+	DXGI_OUTPUT_DESC desc = {};
+	ThrowIfFailed(nativePointer->GetDesc(&desc));
+	return desc;
+}
+
+HMONITOR Output::GetHMonitor() const
+{
+	return GetDesc().Monitor;
+}
+
+/// <summary>
+/// モニター出力の推奨設定を検索します。
+/// </summary>
+DXGI_MODE_DESC Output::FindClosestMatchingMode(
+	UINT width, UINT height, std::shared_ptr<GraphicsDevice> graphicsDevice) const
+{
+	DXGI_MODE_DESC modeToMatch = {};
+	modeToMatch.Width = width;
+	modeToMatch.Height = height;
+	DXGI_MODE_DESC closestMatch = {};
+	ThrowIfFailed(nativePointer->FindClosestMatchingMode(
+		&modeToMatch, &closestMatch, graphicsDevice->GetDevice().Get()));
+	return closestMatch;
+}
+
+/// <summary>
+/// このクラスの新しいインスタンスを初期化します。
+/// </summary>
+Adapter::Adapter(Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgiAdapter)
+{
+	nativePointer = dxgiAdapter;
+
+	// すべてのアダプター出力を検索
+	HRESULT hr = S_OK;
+	for (UINT outputIndex = 0; hr != DXGI_ERROR_NOT_FOUND; outputIndex++) {
+		ComPtr<IDXGIOutput> dxgiOutput;
+		hr = dxgiAdapter->EnumOutputs(outputIndex, &dxgiOutput);
+		if (FAILED(hr)) {
+			continue;
+		}
+		outputs.push_back(shared_ptr<Output>(new Output(dxgiOutput)));
+	}
+}
+
+Microsoft::WRL::ComPtr<IDXGIAdapter1> Adapter::GetNativePointer()
+{
+	return nativePointer;
+}
+
+DXGI_ADAPTER_DESC1 Adapter::GetDesc() const
+{
+	DXGI_ADAPTER_DESC1 desc = {};
+	ThrowIfFailed(nativePointer->GetDesc1(&desc));
+	return desc;
+}
+
+std::shared_ptr<Output> Adapter::GetOutput(int output)
+{
+	return outputs[output];
+}
+
+std::vector<std::shared_ptr<Output>>& Adapter::GetOutputs()
+{
+	return outputs;
+}
+
+/// <summary>
+/// このクラスの新しいインスタンスを初期化します。
+/// </summary>
+Graphics::Graphics(
+	const GraphicsSettings& settings, std::shared_ptr<GameWindow> window)
+{
+	try {
+		// IDXGIFactory1インターフェイスを作成
+		ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)));
+
+		// 作成したウィンドウを表示しているモニターを取得
+		const auto monitor = window->GetHMonitor();
+
+		// アダプターを列挙
+		HRESULT hr = S_OK;
+		for (UINT adapterIndex = 0; hr != DXGI_ERROR_NOT_FOUND; adapterIndex++) {
+			ComPtr<IDXGIAdapter1> dxgiAdapter;
+			hr = dxgiFactory->EnumAdapters1(adapterIndex, dxgiAdapter.GetAddressOf());
+			if (FAILED(hr)) {
+				continue;
+			}
+			// アダプターについての記述を取得
+			DXGI_ADAPTER_DESC1 adapterDesc = {};
+			ThrowIfFailed(dxgiAdapter->GetDesc1(&adapterDesc));
+			// ハードウェアだけを選択
+			if (adapterDesc.Flags != DXGI_ADAPTER_FLAG_NONE) {
+				continue;
+			}
+
+			// アダプターを作成
+			shared_ptr<Adapter> adapter(new Adapter(dxgiAdapter));
+
+			// モニターのハンドルから描画に使用するデバイスを選択
+			for (auto output : adapter->GetOutputs()) {
+				if (monitor == output->GetHMonitor()) {
+					this->adapter = adapter;
+					this->output = output;
+				}
+			}
+
+			adapters.push_back(adapter);
+		}
+
+		// グラフィックス描画に使用するデバイスを作成
+		graphicsDevice.reset(new GraphicsDevice(adapter, settings.creationFlags));
+
+		// スワップチェーンを作成
+		swapChain.reset(new SwapChain(graphicsDevice, window, output));
+		// レンダーターゲットを作成
+		renderTarget.reset(new RenderTarget(swapChain));
+		// 深度ステンシルを作成
+		depthStencil.reset(new DepthStencil(renderTarget, settings.depthStencilFormat));
+	}
+	catch (...) {
+		dxgiFactory.Reset();
+		for (auto& adapter : adapters) {
+			adapter.reset();
+		}
+		adapters.clear();
+		graphicsDevice.reset();
+		swapChain.reset();
+		renderTarget.reset();
+		depthStencil.reset();
+		throw;
+	}
 }
 
 // グラフィックス デバイスを取得します。
@@ -70,8 +165,32 @@ std::shared_ptr<GraphicsDevice> Graphics::GetGraphicsDevice()
 	return graphicsDevice;
 }
 
+// グラフィックス デバイスを取得します。
+std::shared_ptr<const GraphicsDevice> Graphics::GetGraphicsDevice() const
+{
+	return graphicsDevice;
+}
+
+// スワップチェーンを取得します。
+std::shared_ptr<SwapChain> Graphics::GetSwapChain()
+{
+	return swapChain;
+}
+
+// スワップチェーンを取得します。
+std::shared_ptr<const SwapChain> Graphics::GetSwapChain() const
+{
+	return swapChain;
+}
+
 // レンダーターゲットを取得します。
 std::shared_ptr<RenderTarget> Graphics::GetRenderTarget()
+{
+	return renderTarget;
+}
+
+// レンダーターゲットを取得します。
+std::shared_ptr<const RenderTarget> Graphics::GetRenderTarget() const
 {
 	return renderTarget;
 }
@@ -82,8 +201,8 @@ std::shared_ptr<DepthStencil> Graphics::GetDepthStencil()
 	return depthStencil;
 }
 
-// スワップチェーンを取得します。
-std::shared_ptr<SwapChain> Graphics::GetSwapChain()
+// 深度ステンシルを取得します。
+std::shared_ptr<const DepthStencil> Graphics::GetDepthStencil() const
 {
-	return swapChain;
+	return depthStencil;
 }

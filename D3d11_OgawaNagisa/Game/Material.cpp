@@ -9,16 +9,6 @@
 using namespace std;
 using namespace DX;
 
-// このクラスの新しいインスタンスを作成します。
-std::shared_ptr<Material> Material::Create(
-	std::shared_ptr<VertexShader> vertexShader,
-	std::shared_ptr<GeometryShader> geometryShader,
-	std::shared_ptr<PixelShader> pixelShader)
-{
-	return shared_ptr<Material>(
-		new Material(vertexShader, geometryShader, pixelShader));
-}
-
 // このクラスの新しいインスタンスを初期化します。
 Material::Material(
 	std::shared_ptr<VertexShader> vertexShader,
@@ -30,20 +20,38 @@ Material::Material(
 	this->pixelShader = pixelShader;
 }
 
-// 頂点シェーダー
+// 頂点シェーダーを取得します。
 std::shared_ptr<VertexShader> Material::GetVertexShader()
 {
 	return vertexShader;
 }
 
-// ジオメトリー シェーダー
+// 頂点シェーダーを取得します。
+std::shared_ptr<const VertexShader> Material::GetVertexShader() const
+{
+	return vertexShader;
+}
+
+// ジオメトリー シェーダーを取得します。
 std::shared_ptr<GeometryShader> Material::GetGeometryShader()
 {
 	return geometryShader;
 }
 
-// ピクセル シェーダー
+// ジオメトリー シェーダーを取得します。
+std::shared_ptr<const GeometryShader> Material::GetGeometryShader() const
+{
+	return geometryShader;
+}
+
+// ピクセル シェーダーを取得します。
 std::shared_ptr<PixelShader> Material::GetPixelShader()
+{
+	return pixelShader;
+}
+
+// ピクセル シェーダーを取得します。
+std::shared_ptr<const PixelShader> Material::GetPixelShader() const
 {
 	return pixelShader;
 }

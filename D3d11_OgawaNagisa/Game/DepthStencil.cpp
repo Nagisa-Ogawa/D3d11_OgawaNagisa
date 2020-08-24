@@ -6,12 +6,12 @@
 #include "Graphics.h"
 #include "DirectXHelper.h"
 
-using namespace Microsoft::WRL;
 using namespace DX;
 
-// このクラスのインスタンスを作成します。
-std::shared_ptr<DepthStencil> DepthStencil::Create(
+// このクラスのインスタンスを初期化します。
+DepthStencil::DepthStencil(
 	std::shared_ptr<RenderTarget> renderTarget, DXGI_FORMAT format)
+	: GraphicsResource(renderTarget->GetGraphicsDevice())
 {
 	auto graphicsDevice = renderTarget->GetGraphicsDevice();
 
@@ -54,7 +54,6 @@ std::shared_ptr<DepthStencil> DepthStencil::Create(
 		D3D11_BIND_SHADER_RESOURCE;	// シェーダーリソースとして使用することを設定
 	depthStencilDesc.CPUAccessFlags = 0;
 	depthStencilDesc.MiscFlags = 0;
-	ComPtr<ID3D11Texture2D> buffer;
 	ThrowIfFailed(graphicsDevice->GetDevice()->CreateTexture2D(&depthStencilDesc, NULL, &buffer));
 	// 深度ステンシルにアクセスするためのビューを作成
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
@@ -67,7 +66,6 @@ std::shared_ptr<DepthStencil> DepthStencil::Create(
 		depthStencilViewDesc.Texture2D.MipSlice = 0;
 	}
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
-	ComPtr<ID3D11DepthStencilView> view;
 	ThrowIfFailed(graphicsDevice->GetDevice()->CreateDepthStencilView(
 		buffer.Get(), &depthStencilViewDesc, &view));
 	// 深度ステンシルにシェーダーからアクセスするためのリソース ビューを作成
@@ -81,42 +79,24 @@ std::shared_ptr<DepthStencil> DepthStencil::Create(
 		depthStencilResourceViewDesc.Texture2D.MostDetailedMip = 0;
 		depthStencilResourceViewDesc.Texture2D.MipLevels = 1;
 	}
-	ComPtr<ID3D11ShaderResourceView> resourceView;
 	ThrowIfFailed(graphicsDevice->GetDevice()->CreateShaderResourceView(
 		buffer.Get(), &depthStencilResourceViewDesc, &resourceView));
-
-	return std::shared_ptr<DepthStencil>(
-		new DepthStencil(
-			graphicsDevice, buffer, view, resourceView));
 }
 
-// インスタンス生成を禁止
-DepthStencil::DepthStencil(
-	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer,
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> view,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resourceView)
-	: GraphicsResource(graphicsDevice)
-{
-	this->buffer = buffer;
-	this->view = view;
-	this->resourceView = resourceView;
-}
-
-// バックバッファーを取得します。
-Microsoft::WRL::ComPtr<ID3D11Texture2D> DepthStencil::GetBuffer()
+// 深度ステンシルバッファーを取得します。
+Microsoft::WRL::ComPtr<ID3D11Texture2D> DepthStencil::GetBuffer() const
 {
 	return buffer;
 }
 
-// レンダーターゲットを取得します。
-Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencil::GetView()
+// 深度ステンシル ビューを取得します。
+Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencil::GetView() const
 {
 	return view;
 }
 
-// バックバッファーをシェーダーで利用するためのリソース ビューを取得します。
-Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> DepthStencil::GetResourceView()
+// 深度ステンシルをシェーダーで利用するためのリソース ビューを取得します。
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> DepthStencil::GetResourceView() const
 {
 	return resourceView;
 }

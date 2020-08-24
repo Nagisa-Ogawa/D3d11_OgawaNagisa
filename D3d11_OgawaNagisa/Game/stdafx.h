@@ -19,21 +19,20 @@
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#include <memory>
 #include <wrl.h>
 // new ‰‰Zq‚ÌÄ’è‹`
 #ifndef DBG_NEW
 #define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
 #define new DBG_NEW
 #endif
-#else
+#endif
+
 #include <stdlib.h>
 #include <memory>
 #include <wrl.h>
-#endif
-
 #include <exception>
 #include <string>
+#include <chrono>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>

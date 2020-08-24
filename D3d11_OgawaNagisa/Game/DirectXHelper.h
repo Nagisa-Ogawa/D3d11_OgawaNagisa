@@ -5,11 +5,13 @@
 
 namespace DX
 {
-	class win32_exception : public std::exception
+	/// <summary>
+	/// 
+	/// </summary>
+	class Win32Exception : public std::exception
 	{
 	public:
-		// 最後のエラーを更新するメソッド
-		win32_exception(DWORD lastError)
+		Win32Exception(DWORD lastError)
 		{
 			this->lastError = lastError;
 		}
@@ -32,11 +34,13 @@ namespace DX
 		DWORD lastError;
 	};
 
-	// Helper class for COM exceptions
-	class com_exception : public std::exception
+	/// <summary>
+	/// Helper class for COM exceptions
+	/// </summary>
+	class ComException : public std::exception
 	{
 	public:
-		com_exception(HRESULT hr)
+		ComException(HRESULT hr)
 		{
 			// 廃止されたエラーコードを有効なエラーコードに置き換える
 			// D3DERR_INVALIDCALL
@@ -128,35 +132,62 @@ namespace DX
 		HRESULT hResult;
 	};
 
-	// D3D11のエラーを例外に変換するヘルパー関数
+	/// <summary>
+	/// BOOL型のFALSEが指定された際に例外に変換するヘルパー関数です。
+	/// </summary>
+	inline void ThrowIfFailed(BOOL result)
+	{
+		if (result == FALSE) {
+			auto lastError = GetLastError();
+			if (lastError != 0) {
+				throw Win32Exception(lastError);
+			}
+		}
+	}
+
+	/// <summary>
+	/// bool型のfalseが指定された際に例外に変換するヘルパー関数です。
+	/// </summary>
+	inline void ThrowIfFailed(bool result)
+	{
+		if (!result) {
+			auto lastError = GetLastError();
+			if (lastError != 0) {
+				throw Win32Exception(lastError);
+			}
+		}
+	}
+
+	/// <summary>
+	/// D3D11のエラーを例外に変換するヘルパー関数です。
+	/// </summary>
 	inline void ThrowIfFailed(HRESULT hr)
 	{
 		if (FAILED(hr)) {
-			throw com_exception(hr);
+			throw ComException(hr);
+		}
+	}
+
+	template <typename T>
+	inline void SafeDelete(T*& p)
+	{
+		delete p;
+		p = nullptr;
+	}
+
+	template <typename T>
+	inline void SafeDeleteArray(T*& p)
+	{
+		delete[] p;
+		p = nullptr;
+	}
+
+	template <typename T>
+	inline void SafeRelease(T*& p)
+	{
+		if (p != nullptr) {
+			p->Release();
+			p = nullptr;
 		}
 	}
 }
-
-template <typename T>
-inline void SafeDelete(T*& p)
-{
-	delete p;
-	p = nullptr;
-}
-
-template <typename T>
-inline void SafeDeleteArray(T*& p)
-{
-	delete[] p;
-	p = nullptr;
-}
-
-template <typename T>
-inline void SafeRelease(T*& p)
-{
-	if (p != nullptr) {
-		p->Release();
-		p = nullptr;
-	}
-}
-

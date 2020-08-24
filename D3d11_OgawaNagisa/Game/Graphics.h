@@ -5,29 +5,90 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <wrl.h>
 #include <d3d11.h>
 #include "GameWindow.h"
+
+class GraphicsDevice;
+
+/// <summary>
+/// ビデオアダプターからの出力（通常はモニター）を表します。
+/// </summary>
+class Output final
+{
+public:
+	/// <summary>
+	/// このクラスの新しいインスタンスを初期化します。
+	/// </summary>
+	explicit Output(Microsoft::WRL::ComPtr<IDXGIOutput> dxgiOutput);
+	/// <summary>
+	/// ネイティブ実装のポインターを取得します。
+	/// </summary>
+	Microsoft::WRL::ComPtr<IDXGIOutput> GetNativePointer();
+	DXGI_OUTPUT_DESC GetDesc() const;
+	HMONITOR GetHMonitor() const;
+	/// <summary>
+	/// モニター出力の推奨設定を検索します。
+	/// </summary>
+	DXGI_MODE_DESC FindClosestMatchingMode(
+		UINT width, UINT height, std::shared_ptr<GraphicsDevice> graphicsDevice) const;
+
+private:
+	Microsoft::WRL::ComPtr<IDXGIOutput> nativePointer;
+
+	// コピーと代入演算を禁止
+	Output(const Output&);
+	Output& operator=(const Output&) { return *this; }
+};
+
+/// <summary>
+/// ビデオアダプターを表します。
+/// </summary>
+class Adapter final
+{
+public:
+	/// <summary>
+	/// このクラスの新しいインスタンスを初期化します。
+	/// </summary>
+	Adapter(Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgiAdapter);
+	/// <summary>
+	/// ネイティブ実装のポインターを取得します。
+	/// </summary>
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> GetNativePointer();
+	DXGI_ADAPTER_DESC1 GetDesc() const;
+	std::shared_ptr<Output> GetOutput(int output);
+	std::vector<std::shared_ptr<Output>>& GetOutputs();
+
+private:
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> nativePointer;
+	DXGI_ADAPTER_DESC1 desc = {};
+	std::vector<std::shared_ptr<Output>> outputs;
+
+	// コピーと代入演算を禁止
+	Adapter(const Adapter&);
+	Adapter& operator=(const Adapter&) { return *this; }
+};
 
 // グラフィックスデバイスを表します。
 class GraphicsDevice final
 {
 public:
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<GraphicsDevice> Create();
-
 	// IDXGIFactory1オブジェクトを取得します。
-	Microsoft::WRL::ComPtr<IDXGIFactory1> GetDXGIFactory();
+	Microsoft::WRL::ComPtr<IDXGIFactory1> GetDXGIFactory() const;
 	// IDXGIAdapter1オブジェクトを取得します。
-	Microsoft::WRL::ComPtr<IDXGIAdapter1> GetDXGIAdapter();
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> GetDXGIAdapter() const;
 	// IDXGIDevice1オブジェクトを取得します。
-	Microsoft::WRL::ComPtr<IDXGIDevice1> GetDXGIDevice();
+	Microsoft::WRL::ComPtr<IDXGIDevice1> GetDXGIDevice() const;
 	// Direct3D 11のデバイスを取得します。
-	Microsoft::WRL::ComPtr<ID3D11Device> GetDevice();
+	Microsoft::WRL::ComPtr<ID3D11Device> GetDevice() const;
 	// Direct3D 11の機能レベルを取得します。
 	D3D_FEATURE_LEVEL GetFeatureLevel() const;
 	// Direct3D 11のデバイス コンテキストを取得します。
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> GetImmediateContext();
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> GetImmediateContext() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	GraphicsDevice(std::shared_ptr<Adapter> adapter, UINT creationFlags);
 
 private:
 	// IDXGIFactory1オブジェクト
@@ -43,14 +104,6 @@ private:
 	// Direct3D 11のデバイス コンテキスト
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediateContext;
 
-	// インスタンス生成を禁止
-	GraphicsDevice(
-		Microsoft::WRL::ComPtr<IDXGIFactory1> dxgiFactory,
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgiAdapter,
-		Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice,
-		Microsoft::WRL::ComPtr<ID3D11Device> device,
-		D3D_FEATURE_LEVEL featureLevel,
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediateContext);
 	// コピーと代入演算を禁止
 	GraphicsDevice(const GraphicsDevice&) {}
 	GraphicsDevice& operator=(const GraphicsDevice&) { return *this; }
@@ -62,6 +115,8 @@ class GraphicsResource
 public:
 	// Direct3D 11のデバイスを取得します。
 	virtual std::shared_ptr<GraphicsDevice> GetGraphicsDevice() final;
+	// Direct3D 11のデバイスを取得します。
+	virtual std::shared_ptr<const GraphicsDevice> GetGraphicsDevice() const final;
 
 protected:
 	// インスタンス生成を禁止
@@ -80,25 +135,21 @@ private:
 class SwapChain : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<SwapChain> Create(
-		std::shared_ptr<GameWindow> window,
+	// このクラスの新しいインスタンスを初期化します。
+	SwapChain(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		DXGI_FORMAT format, const DXGI_SAMPLE_DESC& sampleDesc);
+		std::shared_ptr<GameWindow> window,
+		std::shared_ptr<Output> output);
 
 	// ディスプレイにレンダリングイメージを表示します。
 	void Present(UINT syncInterval, UINT flags);
 	// スワップチェーンを取得します。
-	Microsoft::WRL::ComPtr<IDXGISwapChain> GetNativePointer();
+	Microsoft::WRL::ComPtr<IDXGISwapChain> GetNativePointer() const;
 
 private:
 	// スワップチェーン
 	Microsoft::WRL::ComPtr<IDXGISwapChain> nativePointer;
 
-	// インスタンス生成を禁止
-	SwapChain(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain);
 	// コピーを禁止
 	SwapChain(const SwapChain& other) : GraphicsResource(other) {}
 	// 代入演算を禁止
@@ -109,16 +160,15 @@ private:
 class RenderTarget final : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<RenderTarget> Create(
-		std::shared_ptr<SwapChain> swapChain);
-
 	// バックバッファーを取得します。
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetBuffer();
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetBuffer() const;
 	// レンダーターゲットを取得します。
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetView();
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetView() const;
 	// バックバッファーをシェーダーで利用するためのリソース ビューを取得します。
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetResourceView();
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetResourceView() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	RenderTarget(std::shared_ptr<SwapChain> swapChain);
 
 private:
 	// バックバッファー
@@ -128,12 +178,6 @@ private:
 	// バックバッファーをシェーダーで利用するためのリソース ビュー
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resourceView;
 
-	// インスタンス生成を禁止
-	RenderTarget(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer,
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view,
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resourceView);
 	// コピーと代入演算を禁止
 	RenderTarget(const RenderTarget& other) : GraphicsResource(other) {}
 	RenderTarget& operator=(const RenderTarget&) { return *this; }
@@ -143,16 +187,16 @@ private:
 class DepthStencil final : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<DepthStencil> Create(
-		std::shared_ptr<RenderTarget> renderTarget, DXGI_FORMAT format);
-
 	// 深度ステンシルバッファーを取得します。
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetBuffer();
-	// レンダーターゲットを取得します。
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetView();
-	// バックバッファーをシェーダーで利用するためのリソース ビューを取得します。
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetResourceView();
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetBuffer() const;
+	// 深度ステンシル ビューを取得します。
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetView() const;
+	// 深度ステンシルをシェーダーで利用するためのリソース ビューを取得します。
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetResourceView() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	DepthStencil(
+		std::shared_ptr<RenderTarget> renderTarget, DXGI_FORMAT format);
 
 private:
 	// バッファー
@@ -162,37 +206,54 @@ private:
 	// 深度ステンシルをシェーダーで利用するためのリソース ビュー
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resourceView;
 
-	// インスタンス生成を禁止
-	DepthStencil(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer,
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> view,
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resourceView);
 	// コピーと代入演算を禁止
 	DepthStencil(const DepthStencil& other) : GraphicsResource(other) {}
 	DepthStencil& operator=(const DepthStencil&) { return *this; }
+};
+
+// グラフィックス初期化についての記述を表します。
+struct GraphicsSettings
+{
+	UINT creationFlags = 0;
+	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 };
 
 // グラフィックス機能を表します。
 class Graphics final
 {
 public:
-	// グラフィックス機能を初期化します。
-	static std::shared_ptr<Graphics> Create(
-		std::shared_ptr<GameWindow> gameWindow,
-		DXGI_FORMAT backBufferFormt, DXGI_FORMAT depthStencilFormt);
-
-	// グラフィックス デバイスを取得します。
+	// 描画デバイスを取得します。
 	std::shared_ptr<GraphicsDevice> GetGraphicsDevice();
+	// 描画デバイスを取得します。
+	std::shared_ptr<const GraphicsDevice> GetGraphicsDevice() const;
 	// スワップチェーンを取得します。
 	std::shared_ptr<SwapChain> GetSwapChain();
+	// スワップチェーンを取得します。
+	std::shared_ptr<const SwapChain> GetSwapChain() const;
 	// レンダーターゲットを取得します。
 	std::shared_ptr<RenderTarget> GetRenderTarget();
+	// レンダーターゲットを取得します。
+	std::shared_ptr<const RenderTarget> GetRenderTarget() const;
 	// 深度ステンシルを取得します。
 	std::shared_ptr<DepthStencil> GetDepthStencil();
+	// 深度ステンシルを取得します。
+	std::shared_ptr<const DepthStencil> GetDepthStencil() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	Graphics(
+		const GraphicsSettings& settings, std::shared_ptr<GameWindow> window);
 
 private:
-	// グラフィックス デバイス
+	// IDXGIFactory1インターフェイス
+	Microsoft::WRL::ComPtr<IDXGIFactory1> dxgiFactory;
+	// 使用可能なすべてのビデオアダプター
+	std::vector<std::shared_ptr<Adapter>> adapters;
+	// ビデオアダプター
+	std::shared_ptr<Adapter> adapter;
+	// ビデオアダプター出力
+	std::shared_ptr<Output> output;
+	// 描画デバイス
 	std::shared_ptr<GraphicsDevice> graphicsDevice;
 	// スワップチェーン
 	std::shared_ptr<SwapChain> swapChain;
@@ -201,12 +262,6 @@ private:
 	// 深度ステンシル
 	std::shared_ptr<DepthStencil> depthStencil;
 
-	// インスタンス生成を禁止
-	Graphics(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		std::shared_ptr<SwapChain> swapChain,
-		std::shared_ptr<RenderTarget> renderTarget,
-		std::shared_ptr<DepthStencil> depthStencil);
 	// コピーと代入演算を禁止
 	Graphics(const Graphics&) {}
 	Graphics& operator=(const Graphics&) { return *this; }
@@ -216,142 +271,168 @@ private:
 class VertexShader : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
+	// このクラスの新しいインスタンスを初期化します。
 	template <SIZE_T _Size>
-	static std::shared_ptr<VertexShader> Create(
+	VertexShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const BYTE(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<VertexShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	VertexShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const void* shaderBytecode, SIZE_T bytecodeLength);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<VertexShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	VertexShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
 
 	// ネイティブ実装のポインターを取得します。
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> GetNativePointer();
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> GetNativePointer() const;
 	// このシェーダーのバイトコードを取得します。
-	Microsoft::WRL::ComPtr<ID3DBlob> GetShaderBytecode();
+	Microsoft::WRL::ComPtr<ID3DBlob> GetShaderBytecode() const;
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> nativePointer;
 	Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecode;
-	// このクラスのインスタンスを初期化します。
-	VertexShader(
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11VertexShader> nativePointer,
-		Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecode);
-	// コピー コンストラクター
+		const void* shaderBytecode, SIZE_T bytecodeLength);
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
+	// コピーと代入演算を禁止
 	VertexShader(const VertexShader&);
+	VertexShader& operator=(const VertexShader&) { return *this; }
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <SIZE_T _Size>
-static std::shared_ptr<VertexShader> VertexShader::Create(
+VertexShader::VertexShader(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const BYTE(&shaderBytecode)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return 	Create(graphicsDevice, shaderBytecode, _Size);
+	OnInitialize(graphicsDevice, shaderBytecode, _Size);
 }
 
 // ジオメトリー シェーダーを表します。
 class GeometryShader : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
+	// このクラスの新しいインスタンスを初期化します。
 	template <SIZE_T _Size>
-	static std::shared_ptr<GeometryShader> Create(
+	GeometryShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const BYTE(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<GeometryShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	GeometryShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const void* shaderBytecode, SIZE_T bytecodeLength);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<GeometryShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	GeometryShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
 
 	// ネイティブ実装のポインターを取得します。
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> GetNativePointer();
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader> GetNativePointer() const;
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader> nativePointer;
-	// このクラスのインスタンスを初期化します。
-	GeometryShader(
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11GeometryShader> nativePointer);
-	// コピー コンストラクター
+		const void* shaderBytecode, SIZE_T bytecodeLength);
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
+	// コピーと代入演算を禁止
 	GeometryShader(const GeometryShader&);
+	GeometryShader& operator=(const GeometryShader&) { return *this; }
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <SIZE_T _Size>
-static std::shared_ptr<GeometryShader> GeometryShader::Create(
+GeometryShader::GeometryShader(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const BYTE(&shaderBytecode)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return 	Create(graphicsDevice, shaderBytecode, _Size);
+	OnInitialize(graphicsDevice, shaderBytecode, _Size);
 }
 
 // ピクセル シェーダーを表します。
 class PixelShader : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
+	// このクラスの新しいインスタンスを初期化します。
 	template <SIZE_T _Size>
-	static std::shared_ptr<PixelShader> Create(
+	PixelShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const BYTE(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<PixelShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	PixelShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const void* shaderBytecode, SIZE_T bytecodeLength);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<PixelShader> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	PixelShader(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
 
 	// ネイティブ実装のポインターを取得します。
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetNativePointer();
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetNativePointer() const;
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> nativePointer;
-	// このクラスのインスタンスを初期化します。
-	PixelShader(
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> nativePointer);
-	// コピー コンストラクター
+		const void* shaderBytecode, SIZE_T bytecodeLength);
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		LPCWSTR fileName, LPCSTR entryPoint, LPCSTR target);
+	// コピーと代入演算を禁止
 	PixelShader(const PixelShader&);
+	PixelShader& operator=(const PixelShader&) { return *this; }
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <SIZE_T _Size>
-static std::shared_ptr<PixelShader> PixelShader::Create(
+PixelShader::PixelShader(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const BYTE(&shaderBytecode)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return 	Create(graphicsDevice, shaderBytecode, _Size);
+	OnInitialize(graphicsDevice, shaderBytecode, _Size);
 }
 
 // マテリアルを表します。
 class Material
 {
 public:
-	// このクラスの新しいインスタンスを作成します。
-	static std::shared_ptr<Material> Create(
+	// 頂点シェーダーを取得します。
+	std::shared_ptr<VertexShader> GetVertexShader();
+	// 頂点シェーダーを取得します。
+	std::shared_ptr<const VertexShader> GetVertexShader() const;
+	// ジオメトリー シェーダーを取得します。
+	std::shared_ptr<GeometryShader> GetGeometryShader();
+	// ジオメトリー シェーダーを取得します。
+	std::shared_ptr<const GeometryShader> GetGeometryShader() const;
+	// ピクセル シェーダーを取得します。
+	std::shared_ptr<PixelShader> GetPixelShader();
+	// ピクセル シェーダーを取得します。
+	std::shared_ptr<const PixelShader> GetPixelShader() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	Material(
 		std::shared_ptr<VertexShader> vertexShader,
 		std::shared_ptr<GeometryShader> geometryShader,
 		std::shared_ptr<PixelShader> pixelShader);
-
-	// 頂点シェーダー
-	std::shared_ptr<VertexShader> GetVertexShader();
-	// ジオメトリー シェーダー
-	std::shared_ptr<GeometryShader> GetGeometryShader();
-	// ピクセル シェーダー
-	std::shared_ptr<PixelShader> GetPixelShader();
 
 private:
 	// 頂点シェーダー
@@ -361,11 +442,6 @@ private:
 	// ピクセル シェーダー
 	std::shared_ptr<PixelShader> pixelShader;
 
-	// このクラスの新しいインスタンスを初期化します。
-	Material(
-		std::shared_ptr<VertexShader> vertexShader,
-		std::shared_ptr<GeometryShader> geometryShader,
-		std::shared_ptr<PixelShader> pixelShader);
 	// コピーと代入演算を禁止
 	Material(const Material&);
 	Material& operator=(const Material&) { return *this; }
@@ -375,62 +451,45 @@ private:
 class VertexBuffer : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
-	template <class T, UINT _Size>
-	static std::shared_ptr<VertexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const T(&initialData)[_Size]);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<VertexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const void* initialData, UINT byteWidth);
-
 	// ネイティブ実装のポインターを取得します。
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetNativePointer() const;
 
+	// このクラスの新しいインスタンスを初期化します。
+	template <class T, UINT _Size>
+	VertexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const T(&initialData)[_Size]);
+	// このクラスの新しいインスタンスを初期化します。
+	VertexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const void* initialData, UINT byteWidth);
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer;
-	// このクラスのインスタンスを初期化します。
-	VertexBuffer(std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer);
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const void* initialData, UINT byteWidth);
 	// コピーと代入演算を禁止
 	VertexBuffer(const VertexBuffer&);
 	VertexBuffer& operator=(const VertexBuffer&) { return *this; }
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを作成します。
 template <class T, UINT _Size>
-static std::shared_ptr<VertexBuffer> VertexBuffer::Create(
+VertexBuffer::VertexBuffer(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const T(&initialData)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return Create(graphicsDevice, initialData, sizeof(T) * _Size);
+	OnInitialize(graphicsDevice, initialData, sizeof(T) * _Size);
 }
 
 // インデックス バッファーを表します。
 class IndexBuffer : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
-	template <UINT _Size>
-	static std::shared_ptr<IndexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const uint16_t(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	template <UINT _Size>
-	static std::shared_ptr<IndexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const uint32_t(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	template <class T, UINT _Size>
-	static std::shared_ptr<IndexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const T(&shaderBytecode)[_Size]);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<IndexBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const void* initialData, UINT byteWidth, DXGI_FORMAT format);
-
 	// ネイティブ実装のポインターを取得します。
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetNativePointer() const;
 	// インデックス バッファー内の要素のフォーマットを取得します。
@@ -440,43 +499,67 @@ public:
 	// インデックス バッファー内の要素の数を取得します。
 	UINT GetCount() const;
 
+	// このクラスの新しいインスタンスを初期化します。
+	template <UINT _Size>
+	IndexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const uint16_t(&shaderBytecode)[_Size]);
+	// このクラスの新しいインスタンスを初期化します。
+	template <UINT _Size>
+	IndexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const uint32_t(&shaderBytecode)[_Size]);
+	// このクラスの新しいインスタンスを初期化します。
+	template <class T, UINT _Size>
+	IndexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const T(&shaderBytecode)[_Size]);
+	// このクラスの新しいインスタンスを初期化します。
+	IndexBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const void* initialData, UINT byteWidth, DXGI_FORMAT format);
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer;
 	DXGI_FORMAT format = DXGI_FORMAT_R32_UINT;
 	UINT offset = 0;
 	UINT count = 0;
-	// このクラスのインスタンスを初期化します。
-	IndexBuffer(std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer,
-		DXGI_FORMAT format, UINT count);
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		const void* initialData, UINT byteWidth, DXGI_FORMAT format);
 	// コピーと代入演算を禁止
 	IndexBuffer(const IndexBuffer&);
 	IndexBuffer& operator=(const IndexBuffer&) { return *this; }
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <UINT _Size>
-static std::shared_ptr<IndexBuffer> IndexBuffer::Create(
+IndexBuffer::IndexBuffer(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const uint16_t(&initialData)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return Create(graphicsDevice, initialData, sizeof(uint32_t) * _Size, DXGI_FORMAT_R16_UINT);
+	OnInitialize(graphicsDevice, initialData, sizeof(uint32_t) * _Size, DXGI_FORMAT_R16_UINT);
 }
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <UINT _Size>
-static std::shared_ptr<IndexBuffer> IndexBuffer::Create(
+IndexBuffer::IndexBuffer(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const uint32_t(&initialData)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
-	return Create(graphicsDevice, initialData, sizeof(uint32_t) * _Size, DXGI_FORMAT_R32_UINT);
+	OnInitialize(graphicsDevice, initialData, sizeof(uint32_t) * _Size, DXGI_FORMAT_R32_UINT);
 }
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <class T, UINT _Size>
-static std::shared_ptr<IndexBuffer> IndexBuffer::Create(
+IndexBuffer::IndexBuffer(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const T(&initialData)[_Size])
+	: GraphicsResource(graphicsDevice)
 {
 	auto format = DXGI_FORMAT_R32_UINT;
 	switch (sizeof(T)) {
@@ -487,30 +570,29 @@ static std::shared_ptr<IndexBuffer> IndexBuffer::Create(
 		format = DXGI_FORMAT_R16_UINT;
 		break;
 	default:
-		throw DX::com_exception(E_INVALIDARG);
+		throw DX::ComException(E_INVALIDARG);
 		return nullptr;
 	}
-	return Create(graphicsDevice, initialData, sizeof(T) * _Size, format);
+	OnInitialize(graphicsDevice, initialData, sizeof(T) * _Size, format);
 }
 
 // 定数バッファーを表します。
 class ConstantBuffer : public GraphicsResource
 {
 public:
-	// このクラスの新しいインスタンスを作成します。
-	static std::shared_ptr<ConstantBuffer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice, UINT byteWidth);
-
 	// ネイティブ実装のポインターを取得します。
-	Microsoft::WRL::ComPtr<ID3D11Buffer> GetNativePointer();
+	Microsoft::WRL::ComPtr<ID3D11Buffer> GetNativePointer() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	ConstantBuffer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice, UINT byteWidth);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer;
 
-	// このクラスの新しいインスタンスを初期化します。
-	ConstantBuffer(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer);
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice, UINT byteWidth);
 	// コピーと代入演算を禁止
 	ConstantBuffer(const ConstantBuffer&);
 	ConstantBuffer& operator=(const ConstantBuffer&) { return *this; }
@@ -520,74 +602,136 @@ private:
 class InputLayout : public GraphicsResource
 {
 public:
-	// このクラスのインスタンスを作成します。
+	// ネイティブ実装のポインターを取得します。
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetNativePointer() const;
+
+	// このクラスの新しいインスタンスを初期化します。
 	template <UINT _Size>
-	static std::shared_ptr<InputLayout> Create(
+	InputLayout(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		const D3D11_INPUT_ELEMENT_DESC(&shaderBytecode)[_Size],
-		Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature);
-	// このクラスのインスタンスを作成します。
-	static std::shared_ptr<InputLayout> Create(
+		const D3D11_INPUT_ELEMENT_DESC(&inputElementDescs)[_Size],
+		const Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature);
+	// このクラスの新しいインスタンスを初期化します。
+	InputLayout(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		const D3D11_INPUT_ELEMENT_DESC* inputElementDescs, UINT numElements,
-		Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature);
-
-	// ネイティブ実装のポインターを取得します。
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetNativePointer();
+		const Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> nativePointer;
-	// このクラスのインスタンスを初期化します。
-	InputLayout(
+
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
 		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> nativePointer);
+		const D3D11_INPUT_ELEMENT_DESC* inputElementDescs, UINT numElements,
+		const Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature);
 	// コピー コンストラクター
 	InputLayout(const InputLayout&);
 };
 
-// このクラスのインスタンスを作成します。
+// このクラスの新しいインスタンスを作成します。
 template <UINT _Size>
-static std::shared_ptr<InputLayout> InputLayout::Create(
+InputLayout::InputLayout(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	const D3D11_INPUT_ELEMENT_DESC(&shaderBytecode)[_Size],
-	Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature)
+	const D3D11_INPUT_ELEMENT_DESC(&inputElementDescs)[_Size],
+	const Microsoft::WRL::ComPtr<ID3DBlob> shaderBytecodeWithInputSignature)
+	: GraphicsResource(graphicsDevice)
 {
-	return Create(graphicsDevice, shaderBytecode, _Size, shaderBytecodeWithInputSignature);
+	OnInitialize(
+		graphicsDevice,
+		inputElementDescs, _Size,
+		shaderBytecodeWithInputSignature);
 }
+
+// 
+class Image final
+{
+public:
+	// このクラスの新しいインスタンスを初期化します。
+	Image(LPCWSTR fileName);
+
+	UINT GetWidth() const;
+	UINT GetHeight() const;
+	UINT GetStride() const;
+	UINT GetPixelSize() const;
+	UINT GetSize() const;
+	const BYTE* GetPixels() const;
+
+private:
+	UINT width = 0;
+	UINT height = 0;
+	UINT pixelSize = 4;
+	std::shared_ptr<BYTE> data;
+
+	// コピーと代入演算を禁止
+	Image(const Image&);
+	Image& operator=(const Image&) { return *this; }
+};
+
+// 2D のテクスチャーを表します。
+class Texture2D : public GraphicsResource
+{
+public:
+	// このクラスの新しいインスタンスを初期化します。
+	Texture2D(std::shared_ptr<GraphicsDevice> graphicsDevice, LPCWSTR fileName);
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> GetSamplerState() const;
+private:
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> view;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
+
+	// コピーと代入演算を禁止
+	Texture2D(const Texture2D&);
+	Texture2D& operator=(const Texture2D&) { return *this; }
+};
 
 // モデルのメッシュデータを表します。
 class Mesh final
 {
 public:
-	// このクラスの新しいインスタンスを作成します。
+	// このクラスの新しいインスタンスを初期化します。
 	template <UINT _NumBuffers, UINT _NumElements>
-	static std::shared_ptr<Mesh> Create(
+	Mesh(
 		std::shared_ptr<VertexBuffer>(&vertexBuffers)[_NumBuffers],
-		UINT(&strides)[_NumBuffers],
+		const UINT(&strides)[_NumBuffers],
 		std::shared_ptr<IndexBuffer> indexBuffer,
 		const D3D11_INPUT_ELEMENT_DESC(&inputElementDescs)[_NumElements]);
-	// このクラスの新しいインスタンスを作成します。
-	static std::shared_ptr<Mesh> Create(
+	// このクラスの新しいインスタンスを初期化します。
+	Mesh(
 		UINT numBuffers,
-		std::shared_ptr<VertexBuffer>* vertexBuffers, UINT* strides,
+		std::shared_ptr<VertexBuffer>* vertexBuffers, const UINT* strides,
 		std::shared_ptr<IndexBuffer> indexBuffer,
 		UINT numElements,
 		const D3D11_INPUT_ELEMENT_DESC* inputElementDescs);
 
 	// 頂点バッファーの数を取得します。
 	UINT GetNumBuffers() const;
+
+	// このメッシュに含まれるVertexBufferの配列を取得します。
+	const std::shared_ptr<VertexBuffer>* GetVertexBuffers();
 	// このメッシュに含まれるVertexBufferの配列を取得します。
 	const std::shared_ptr<VertexBuffer>* GetVertexBuffers() const;
+
 	// このメッシュに含まれるID3D11Bufferの配列を取得します。
-	ID3D11Buffer* const* GetNativePointers() const;
+	ID3D11Buffer* const* GetNativePointers();
+	// このメッシュに含まれるID3D11Bufferの配列を取得します。
+	const ID3D11Buffer* const* GetNativePointers() const;
+
 	// ID3D11Bufferの配列の各要素について頂点データのバイトサイズを取得します。
 	const UINT* GetStrides() const;
 	// ID3D11Bufferの配列の各要素について先頭からのオフセットを取得します。
 	const UINT* GetOffsets() const;
+
+	// このメッシュに含まれるIndexBufferを取得します。
+	std::shared_ptr<IndexBuffer> GetIndexBuffer();
 	// このメッシュに含まれるIndexBufferを取得します。
 	std::shared_ptr<const IndexBuffer> GetIndexBuffer() const;
+
 	// プリミティブの種類を取得します。
 	D3D11_PRIMITIVE_TOPOLOGY GetPrimitiveTopology() const;
+	// 入力要素の数を取得します。
+	UINT GetNumElements() const;
 	// 頂点データについて入力要素を取得します。
 	const D3D11_INPUT_ELEMENT_DESC* GetInputElementDescs() const;
 
@@ -602,9 +746,10 @@ private:
 	D3D11_INPUT_ELEMENT_DESC inputElementDescs[D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT] = {};
 	UINT numElements = 0;
 
-	// インスタンス生成を禁止
-	Mesh(UINT numBuffers,
-		std::shared_ptr<VertexBuffer>* vertexBuffers, UINT* strides,
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		UINT numBuffers,
+		std::shared_ptr<VertexBuffer>* vertexBuffers, const UINT* strides,
 		std::shared_ptr<IndexBuffer> indexBuffer,
 		UINT numElements,
 		const D3D11_INPUT_ELEMENT_DESC* inputElementDescs);
@@ -613,15 +758,15 @@ private:
 	Mesh& operator=(const Mesh&) { return *this; }
 };
 
-// このクラスの新しいインスタンスを作成します。
+// このクラスの新しいインスタンスを初期化します。
 template <UINT _NumBuffers, UINT _NumElements>
-static std::shared_ptr<Mesh> Mesh::Create(
+Mesh::Mesh(
 	std::shared_ptr<VertexBuffer>(&vertexBuffers)[_NumBuffers],
-	UINT(&strides)[_NumBuffers],
+	const UINT(&strides)[_NumBuffers],
 	std::shared_ptr<IndexBuffer> indexBuffer,
 	const D3D11_INPUT_ELEMENT_DESC(&inputElementDescs)[_NumElements])
 {
-	return Create(
+	OnInitialize(
 		_NumBuffers, vertexBuffers, strides,
 		indexBuffer,
 		_NumElements, inputElementDescs);
@@ -631,20 +776,25 @@ static std::shared_ptr<Mesh> Mesh::Create(
 class MeshRenderer final
 {
 public:
-	// このクラスの新しいインスタンスを作成します。
-	static std::shared_ptr<MeshRenderer> Create(
-		std::shared_ptr<GraphicsDevice> graphicsDevice,
-		std::shared_ptr<Mesh> mesh,
-		std::shared_ptr<Material> material);
-
 	// レンダリングに使用するメッシュを取得します。
 	std::shared_ptr<Mesh> GetMesh();
+	// レンダリングに使用するメッシュを取得します。
+	std::shared_ptr<const Mesh> GetMesh() const;
 	// レンダリングに使用するマテリアルを取得します。
 	std::shared_ptr<Material> GetMaterial();
+	// レンダリングに使用するマテリアルを取得します。
+	std::shared_ptr<const Material> GetMaterial() const;
+
+	// このクラスの新しいインスタンスを初期化します。
+	MeshRenderer(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
+		std::shared_ptr<Mesh> mesh,
+		std::shared_ptr<Material> material,
+		std::shared_ptr<Texture2D> texture2D);
 
 	// このレンダラーによる描画を実行します。
 	void Draw(
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediateContext);
+		ID3D11DeviceContext* deviceContext);
 
 private:
 	// メッシュ
@@ -653,13 +803,16 @@ private:
 	std::shared_ptr<Material> material;
 	// 入力レイアウト
 	std::shared_ptr<InputLayout> inputLayout;
+	// テクスチャー
+	std::shared_ptr<Texture2D> texture2D;
 
-	// インスタンス生成を禁止
-	MeshRenderer(
+	// 初期化の際に呼び出されます。
+	void OnInitialize(
+		std::shared_ptr<GraphicsDevice> graphicsDevice,
 		std::shared_ptr<Mesh> mesh,
 		std::shared_ptr<Material> material,
-		std::shared_ptr<InputLayout> inputLayout);
+		std::shared_ptr<Texture2D> texture2D);
 	// コピーと代入演算を禁止
-	MeshRenderer(const MeshRenderer&) {}
+	MeshRenderer(const MeshRenderer&);
 	MeshRenderer& operator=(const MeshRenderer&) { return *this; }
 };

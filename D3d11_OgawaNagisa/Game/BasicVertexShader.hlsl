@@ -12,6 +12,8 @@
 //	return output;
 //}
 
+#include <BasicShader.hlsli>
+
 cbuffer ConstantBufferForCamera : register(b0)
 {
 	matrix view;		// ビュー変換行列
@@ -23,10 +25,19 @@ cbuffer ConstantBufferForPerFrame : register(b1)
 	matrix world;	// ワールド変換行列
 };
 
-float4 main(float4 position : POSITION) : SV_POSITION
+GeometryShaderInput main(VertexShaderInput input)
 {
-	float4 worldPosition = mul(world, position);
+	GeometryShaderInput output;
+	// 位置座標をプロジェクション空間へ変換
+	float4 worldPosition = mul(world, input.position);
 	float4 viewPosition = mul(view, worldPosition);
-	float4 projectionPosition = mul(projection, viewPosition);
-	return projectionPosition;
+	output.position = mul(projection, viewPosition);
+	// 位置座標をワールド空間へ変換
+	output.worldPosition = mul(world, input.position).xyz;
+	// 法線ベクトルをビュー空間へ変換
+	float3 worldNormal = mul((float3x3)world, input.normal);
+	float4 viewNormal = mul(view, float4(worldNormal.xyz, 0.0f));
+	output.worldNormal = normalize(worldNormal);
+	output.texCoord = input.texCoord;
+	return output;
 }

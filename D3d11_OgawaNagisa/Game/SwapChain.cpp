@@ -9,18 +9,31 @@
 using namespace Microsoft::WRL;
 using namespace DX;
 
-// このクラスのインスタンスを作成します。
-std::shared_ptr<SwapChain> SwapChain::Create(
-	std::shared_ptr<GameWindow> window,
+// このクラスのインスタンスを初期化します。
+SwapChain::SwapChain(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	DXGI_FORMAT format, const DXGI_SAMPLE_DESC& sampleDesc)
+	std::shared_ptr<GameWindow> window,
+	std::shared_ptr<Output> output)
+	: GraphicsResource(graphicsDevice)
 {
+	// モニター出力の推奨設定を取得
+	auto modeDesc = output->FindClosestMatchingMode(
+		window->GetWidth(), window->GetHeight(), graphicsDevice);
+	// MSAAの使用可能な最大品質を取得
+	DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
+	for (int index = 0; index <= D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; index++) {
+		UINT quality;
+		if (SUCCEEDED(graphicsDevice->GetDevice()->CheckMultisampleQualityLevels(
+			modeDesc.Format, index, &quality))) {
+			if (quality > 0) {
+				sampleDesc.Count = index;
+				sampleDesc.Quality = quality - 1;
+			}
+		}
+	}
 	// 作成するスワップチェーンについての記述
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-	swapChainDesc.BufferDesc.Width = window->GetWidth();
-	swapChainDesc.BufferDesc.Height = window->GetHeight();
-	swapChainDesc.BufferDesc.RefreshRate = { 60, 1 };
-	swapChainDesc.BufferDesc.Format = format;
+	swapChainDesc.BufferDesc = modeDesc;
 	swapChainDesc.SampleDesc = sampleDesc;
 	swapChainDesc.BufferUsage =
 		DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
@@ -29,22 +42,9 @@ std::shared_ptr<SwapChain> SwapChain::Create(
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	swapChainDesc.Windowed = TRUE;
 	// スワップチェーンを作成
-	ComPtr<IDXGISwapChain> swapChain;
 	ThrowIfFailed(
 		graphicsDevice->GetDXGIFactory()->CreateSwapChain(
-			graphicsDevice->GetDevice().Get(), &swapChainDesc, &swapChain));
-
-	return std::shared_ptr<SwapChain>(
-		new SwapChain(graphicsDevice, swapChain));
-}
-
-// インスタンス生成を禁止
-SwapChain::SwapChain(
-	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain)
-	: GraphicsResource(graphicsDevice)
-{
-	this->nativePointer = swapChain;
+			graphicsDevice->GetDevice().Get(), &swapChainDesc, &nativePointer));
 }
 
 // ディスプレイにレンダリングイメージを表示します。
@@ -54,7 +54,7 @@ void SwapChain::Present(UINT syncInterval, UINT flags)
 }
 
 // スワップチェーンを取得します。
-Microsoft::WRL::ComPtr<IDXGISwapChain> SwapChain::GetNativePointer()
+Microsoft::WRL::ComPtr<IDXGISwapChain> SwapChain::GetNativePointer() const
 {
 	return nativePointer;
 }

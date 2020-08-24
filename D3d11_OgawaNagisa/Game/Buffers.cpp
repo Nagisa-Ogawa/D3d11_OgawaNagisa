@@ -6,16 +6,23 @@
 #include "Graphics.h"
 #include "DirectXHelper.h"
 
-using namespace std;
-using namespace Microsoft::WRL;
 using namespace DX;
 
-// このクラスのインスタンスを作成します。
-std::shared_ptr<VertexBuffer> VertexBuffer::Create(
+// このクラスのインスタンスを初期化します。
+VertexBuffer::VertexBuffer(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	const void* initialData, UINT byteWidth)
+	: GraphicsResource(graphicsDevice)
+{
+	OnInitialize(graphicsDevice, initialData, byteWidth);
+}
+
+// 初期化の際に呼び出されます。
+void VertexBuffer::OnInitialize(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const void* initialData, UINT byteWidth)
 {
-	// 頂点バッファーについての記述
+	// バッファーについての記述
 	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.ByteWidth = byteWidth;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -26,25 +33,10 @@ std::shared_ptr<VertexBuffer> VertexBuffer::Create(
 	// 初期化データについての記述
 	D3D11_SUBRESOURCE_DATA subresourceData = {};
 	subresourceData.pSysMem = initialData;
-	subresourceData.SysMemPitch = 0;
-	subresourceData.SysMemSlicePitch = 0;
-	// 頂点バッファーを作成
-	ComPtr<ID3D11Buffer> nativePointer;
+	// バッファーを作成
 	ThrowIfFailed(
 		graphicsDevice->GetDevice()->CreateBuffer(
 			&bufferDesc, &subresourceData, &nativePointer));
-
-	return shared_ptr<VertexBuffer>(
-		new VertexBuffer(graphicsDevice, nativePointer));
-}
-
-// このクラスのインスタンスを初期化します。
-VertexBuffer::VertexBuffer(
-	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer)
-	: GraphicsResource(graphicsDevice)
-{
-	this->nativePointer = nativePointer;
 }
 
 // ネイティブ実装のポインターを取得します。
@@ -53,12 +45,21 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> VertexBuffer::GetNativePointer() const
 	return nativePointer;
 }
 
-// このクラスのインスタンスを作成します。
-std::shared_ptr<IndexBuffer> IndexBuffer::Create(
+// このクラスのインスタンスを初期化します。
+IndexBuffer::IndexBuffer(
+	std::shared_ptr<GraphicsDevice> graphicsDevice,
+	const void* initialData, UINT byteWidth, DXGI_FORMAT format)
+	: GraphicsResource(graphicsDevice)
+{
+	OnInitialize(graphicsDevice, initialData, byteWidth, format);
+}
+
+// 初期化の際に呼び出されます。
+void IndexBuffer::OnInitialize(
 	std::shared_ptr<GraphicsDevice> graphicsDevice,
 	const void* initialData, UINT byteWidth, DXGI_FORMAT format)
 {
-	// 頂点バッファーについての記述
+	// バッファーについての記述
 	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.ByteWidth = byteWidth;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -69,15 +70,14 @@ std::shared_ptr<IndexBuffer> IndexBuffer::Create(
 	// 初期化データについての記述
 	D3D11_SUBRESOURCE_DATA subresourceData = {};
 	subresourceData.pSysMem = initialData;
-	subresourceData.SysMemPitch = 0;
-	subresourceData.SysMemSlicePitch = 0;
-	// 頂点バッファーを作成
-	ComPtr<ID3D11Buffer> nativePointer;
+	// バッファーを作成
 	ThrowIfFailed(
 		graphicsDevice->GetDevice()->CreateBuffer(
 			&bufferDesc, &subresourceData, &nativePointer));
 
-	UINT count = 0;
+	this->format = format;
+	this->offset = 0;
+
 	switch (format) {
 	case DXGI_FORMAT_R32_UINT:
 		count = byteWidth / sizeof(UINT);
@@ -86,23 +86,9 @@ std::shared_ptr<IndexBuffer> IndexBuffer::Create(
 		count = byteWidth / sizeof(USHORT);
 		break;
 	default:
-		throw DX::com_exception(E_INVALIDARG);
-		return nullptr;
+		throw DX::ComException(E_INVALIDARG);
+		break;
 	}
-	return shared_ptr<IndexBuffer>(
-		new IndexBuffer(graphicsDevice, nativePointer, format, count));
-}
-
-// このクラスのインスタンスを初期化します。
-IndexBuffer::IndexBuffer(
-	std::shared_ptr<GraphicsDevice> graphicsDevice,
-	Microsoft::WRL::ComPtr<ID3D11Buffer> nativePointer,
-	DXGI_FORMAT format, UINT count)
-	: GraphicsResource(graphicsDevice)
-{
-	this->nativePointer = nativePointer;
-	this->format = format;
-	this->count = count;
 }
 
 // ネイティブ実装のポインターを取得します。
@@ -127,4 +113,35 @@ UINT IndexBuffer::GetOffset() const
 UINT IndexBuffer::GetCount() const
 {
 	return count;
+}
+
+// このクラスの新しいインスタンスを初期化します。
+ConstantBuffer::ConstantBuffer(
+	std::shared_ptr<GraphicsDevice> graphicsDevice, UINT byteWidth)
+	: GraphicsResource(graphicsDevice)
+{
+	OnInitialize(graphicsDevice, byteWidth);
+}
+
+// 初期化の際に呼び出されます。
+void ConstantBuffer::OnInitialize(
+	std::shared_ptr<GraphicsDevice> graphicsDevice, UINT byteWidth)
+{
+	// バッファーについての記述
+	D3D11_BUFFER_DESC constantBufferDesc = {};
+	constantBufferDesc.ByteWidth = byteWidth;
+	constantBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constantBufferDesc.CPUAccessFlags = 0;
+	constantBufferDesc.MiscFlags = 0;
+	constantBufferDesc.StructureByteStride = 0;
+	// バッファーを作成
+	ThrowIfFailed(graphicsDevice->GetDevice()->CreateBuffer(
+		&constantBufferDesc, NULL, &nativePointer));
+}
+
+// ネイティブ実装のポインターを取得します。
+Microsoft::WRL::ComPtr<ID3D11Buffer> ConstantBuffer::GetNativePointer() const
+{
+	return nativePointer;
 }

@@ -4,16 +4,8 @@
 //=============================================================================
 #include "stdafx.h"
 #include "Game.h"
-#include "DirectXHelper.h"
 
-using namespace DX;
 using namespace DirectX;
-
-// このクラスの新しいインスタンスを作成します。
-std::shared_ptr<Camera> Camera::Create(std::shared_ptr<GameWindow> window)
-{
-	return std::shared_ptr<Camera>(new Camera(window));
-}
 
 // このクラスの新しいインスタンスを初期化します。
 Camera::Camera(std::shared_ptr<GameWindow> window)
@@ -22,13 +14,13 @@ Camera::Camera(std::shared_ptr<GameWindow> window)
 }
 
 // ビュー変換行列を取得します。
-XMMATRIX Camera::GetViewMatrix() const
+DirectX::XMMATRIX Camera::GetViewMatrix() const
 {
 	return XMMatrixLookAtLH(eyePosition, focusPosition, upDirection);
 }
 
 // プロジェクション変換行列を取得します。
-XMMATRIX Camera::GetProjectionMatrix() const
+DirectX::XMMATRIX Camera::GetProjectionMatrix() const
 {
 	return XMMatrixPerspectiveFovLH(fov, aspectHeightByWidth, nearZ, farZ);
 }

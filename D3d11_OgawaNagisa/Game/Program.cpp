@@ -7,16 +7,27 @@
 
 // アプリケーションのエントリーポイント
 int WINAPI wWinMain(
-	_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
+	HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	LPWSTR lpCmdLine, int nCmdShow)
 {
-// デバッグ時なら
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(lpCmdLine);
+
 #if defined(DEBUG) || defined(_DEBUG)
-	// アプリケーション終了時にメモリリークレポートを出力する
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+
 	// アプリケーションの起動設定
-	Game::Initialize(L"Gameタイトル", 640, 480);
+	ApplicationSettings settings;
+	settings.window.hInstance = hInstance;
+	settings.window.nCmdShow = nCmdShow;
+	settings.window.title = L"タイトル";
+	settings.window.width = 640;
+	settings.window.height = 480;
+#if defined(DEBUG) || defined(_DEBUG)
+	// DEBUGビルドの際にDirect3Dのデバッグ表示機能を持たせる
+	settings.graphics.creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
 	// メッセージ ループを実行
-	return Game::Run();
+	return Game::Run(settings);
 }
