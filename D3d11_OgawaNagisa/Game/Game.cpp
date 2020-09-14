@@ -27,84 +27,6 @@ Game& Game::GetInstance()
 // メッセージループを実行します。
 int Game::Run(const ApplicationSettings& settings)
 {
-	{
-		//// 平行光源の情報
-		//struct ConstantDirectionalLight {
-		//	XMFLOAT4 direction = XMFLOAT4(-0.5f, 0.5f, -1.0f, 0.0f);
-		//	XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
-		//};
-
-		//// 物体表面の質感
-		//struct ConstantMaterial
-		//{
-		//	XMFLOAT3 baseColor = XMFLOAT3(1.0f, 1.0f, 1.0f);
-		//	float metallic = 1.0f;
-		//	XMFLOAT3 specular = XMFLOAT3(0.5f, 0.5f, 0.5f);
-		//	float roughness = 0.5f;
-		//};
-		//
-		//struct ConstantMatricesBuffer
-		//{
-		//	XMFLOAT4X4 worldMatrix;
-		//	XMFLOAT4X4 viewMatrix;
-		//	XMFLOAT4X4 projectionMatrix;
-		//	XMFLOAT4X4 worldViewProjectionMatrix;
-		//	// 視点座標
-		//	XMFLOAT4 viewPosition = XMFLOAT4(0, 1, -10, 1);
-		//	// 光源
-		//	ConstantDirectionalLight constantDirectionalLight;
-		//	// 物体の質感
-		//	ConstantMaterial material;
-		//};
-
-		//// 定数バッファーを作成
-		//ConstantBuffer* constantBuffer = nullptr;
-		//constantBuffer = ConstantBuffer::Create(graphicsDevice, sizeof(ConstantMatricesBuffer));
-		//if (constantBuffer == nullptr)
-		//{
-		//	OutputDebugString(L"定数バッファーを作成できませんでした。");
-		//	return -1;
-		//}
-
-
-		//	//fopen_s(&fp,"earth.data", "rb");
-
-		//	//if (fp == NULL)
-		//	//{
-		//	//	printf("失敗");
-		//	//	return -1;
-		//	//}
-
-		//	//fread(source, sizeof(uint32_t), 1024*1024, fp);
-
-		//	//fclose(fp);
-		//}
-
-		//// bitmapデータの読み込み
-		//ReadBitMap readBitMap;
-		//// データを取得
-		//uint32_t* source = readBitMap.ReadFromBitMap("../resource/image/earth.bmp");
-		//if (source == nullptr)
-		//{
-		//	OutputDebugString(L"画像データを読み込めませんでした。");
-		//	return -1;
-		//}
-		//// テクスチャーを作成
-		//Texture2D* texture =
-		//	Texture2D::Create(graphicsDevice, readBitMap.width, readBitMap.height, DXGI_FORMAT_R8G8B8A8_UNORM, false);
-		//if (texture == nullptr) {
-		//	OutputDebugString(L"テクスチャーを作成できませんでした。");
-		//	return -1;
-		//}
-		//texture->width = readBitMap.width;
-		//// ピクセルデータを更新
-		//texture->SetData(source);
-		//// データを開放
-		//readBitMap.Release();
-
-		//float time = 0;
-
-	}
 	return GetInstance().OnRun(settings);
 
 }
@@ -117,8 +39,8 @@ int Game::OnRun(const ApplicationSettings& settings)
 		OnInitialize(settings);
 	}
 
-	shared_ptr<Scene> scene(new Scene(window, graphics, input));
-	scene->Start();
+	std::shared_ptr<TitleScene> titleScene(new TitleScene(window, graphics, input));
+	SceneManager::GetInstance().ChangeScene(titleScene);
 
 	long long totalCount = 0;	// 累積時間（ミリ秒）
 	long long deltaCount = 0;	// 経過時間（ミリ秒）
@@ -144,8 +66,8 @@ int Game::OnRun(const ApplicationSettings& settings)
 		}
 
 		// シーンのフレーム処理
-		scene->Update(time, deltaTime);
-		scene->Draw(time, deltaTime);
+		SceneManager::GetInstance().Update(time, deltaTime);
+		SceneManager::GetInstance().Draw(time, deltaTime);
 
 		// バックバッファーに描画したイメージをディスプレイに表示
 		graphics->GetSwapChain()->Present(1, 0);

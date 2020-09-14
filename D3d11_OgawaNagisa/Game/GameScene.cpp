@@ -15,19 +15,17 @@ using namespace std;
 using namespace DirectX;
 using namespace DX;
 
-// このクラスの新しいインスタンスを初期化します。
-Scene::Scene(
+
+GameScene::GameScene(
 	std::shared_ptr<GameWindow> window,
 	std::shared_ptr<Graphics> graphics,
-	std::shared_ptr<Input> input)
+	std::shared_ptr<Input> input) : Scene(window,graphics,input)
 {
-	this->window = window;
-	this->graphics = graphics;
-	this->input = input;
+	
 }
 
 // シーンを初期化する際に呼び出されます。
-void Scene::Start()
+void GameScene::Start()
 {
 	auto graphicsDevice = graphics->GetGraphicsDevice();
 
@@ -46,8 +44,8 @@ void Scene::Start()
 	camera->Start();
 
 
-	gameObjectA.reset(new GameObject(input, XMVectorSet(-1.0f, 0.0f, 0.0f, 1.0f)));
-	gameObjectB.reset(new GameObject(input, XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f)));
+	playerObject.reset(new PlayerObject(input));
+	gameObjectB.reset(new GameObject(input));
 
 	// 位置座標のみをもつ頂点データの型
 	struct VertexPosition
@@ -154,7 +152,7 @@ void Scene::Start()
 	shared_ptr<IndexBuffer> indexBuffer(new IndexBuffer(graphicsDevice, indices,sizeof(UINT)*index_num, DXGI_FORMAT_R32_UINT));
 
 	delete[] indices;
-	gameObjectA->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
+	playerObject->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
 	gameObjectB->mesh.reset(new Mesh(vertexBuffers, strides, indexBuffer, inputElementDescs));
 
 
@@ -175,19 +173,19 @@ void Scene::Start()
 
 
 	// レンダラーを作成
-	gameObjectA->renderer.reset(new MeshRenderer(graphicsDevice, gameObjectA->mesh, material,texture));
+	playerObject->renderer.reset(new MeshRenderer(graphicsDevice, playerObject->mesh, material,texture));
 	gameObjectB->renderer.reset(new MeshRenderer(graphicsDevice, gameObjectB->mesh, material, texture));
 }
 
 // フレームを更新する際に呼び出されます。
-void Scene::Update(float time, float elapsedTime)
+void GameScene::Update(float time, float elapsedTime)
 {
-	gameObjectA->Update(time, elapsedTime);
+	playerObject->Update(time, elapsedTime);
 	gameObjectB->Update(time, elapsedTime);
 }
 
 // フレームを描画する際に呼び出されます。
-void Scene::Draw(float time, float elapsedTime)
+void GameScene::Draw(float time, float elapsedTime)
 {
 	auto deviceContext = graphics->GetGraphicsDevice()->GetImmediateContext();
 
@@ -269,7 +267,7 @@ void Scene::Draw(float time, float elapsedTime)
 	{
 		// ワールド変換行列を更新
 		const ConstantBufferDescForPerFrame srcDataA = {
-			gameObjectA->GetTransform()->GetWorldMatrix(),
+			playerObject->GetTransform()->GetWorldMatrix(),
 		};
 		// サブリソースを更新
 		deviceContext->UpdateSubresource(
@@ -282,21 +280,28 @@ void Scene::Draw(float time, float elapsedTime)
 		deviceContext->VSSetConstantBuffers(
 			1, ARRAYSIZE(constantBuffers), constantBuffers);
 	}
+	{
+		// オブジェクトAを描画
+		playerObject->Draw(deviceContext.Get(), time, elapsedTime);
 
-	gameObjectA->Draw(deviceContext.Get(), time, elapsedTime);
+		const ConstantBufferDescForPerFrame srcDataB = {
+		gameObjectB->GetTransform()->GetWorldMatrix(),
+		};
+		deviceContext->UpdateSubresource(
+			constantBufferForPerFrame->GetNativePointer().Get(), 0, NULL, &srcDataB, 0, 0);
+		ID3D11Buffer* const constantBuffers[] = {
+			constantBufferForPerFrame->GetNativePointer().Get(),
+		};
+		deviceContext->VSSetConstantBuffers(
+			1, ARRAYSIZE(constantBuffers), constantBuffers);
 
-	const ConstantBufferDescForPerFrame srcDataB = {
-	gameObjectB->GetTransform()->GetWorldMatrix(),
-	};
-	deviceContext->UpdateSubresource(
-		constantBufferForPerFrame->GetNativePointer().Get(), 0, NULL, &srcDataB, 0, 0);
-	// 定数バッファーを設定
-	ID3D11Buffer* const constantBuffers[] = {
-		constantBufferForPerFrame->GetNativePointer().Get(),
-	};
-	deviceContext->VSSetConstantBuffers(
-		1, ARRAYSIZE(constantBuffers), constantBuffers);
+		gameObjectB->Draw(deviceContext.Get(), time, elapsedTime);
 
-	gameObjectB->Draw(deviceContext.Get(), time, elapsedTime);
+	}
+
+
+}
+
+void GameScene::End() {
 
 }

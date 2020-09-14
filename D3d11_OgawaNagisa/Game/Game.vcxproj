@@ -162,21 +162,29 @@
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="PlayerObject.cpp" />
     <ClCompile Include="Program.cpp" />
+    <ClCompile Include="ReadModel.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
-    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="GameScene.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="Shaders.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="SwapChain.cpp" />
     <ClCompile Include="Textures.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
     <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXHelper.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameObject.h" />
     <ClInclude Include="GameWindow.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="ReadModel.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

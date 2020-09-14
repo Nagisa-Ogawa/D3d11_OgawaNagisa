@@ -15,14 +15,14 @@ using namespace DX;
 Image::Image(LPCWSTR fileName)
 {
 	try {
-		// 
+		// CLSID_WICImagingFactoryに関連付いたオブジェクトを作成
 		ComPtr<IWICImagingFactory> factory;
 		ThrowIfFailed(CoCreateInstance(
 			CLSID_WICImagingFactory,
 			NULL,
 			CLSCTX_INPROC_SERVER,
 			IID_PPV_ARGS(factory.GetAddressOf())));
-		// 
+		// 指定したファイルからIWICBitmapDecoderクラスのインスタンスを作成
 		ComPtr<IWICBitmapDecoder> decoder;
 		ThrowIfFailed(factory->CreateDecoderFromFilename(
 			fileName,
@@ -30,7 +30,7 @@ Image::Image(LPCWSTR fileName)
 			GENERIC_READ,
 			WICDecodeMetadataCacheOnDemand,
 			decoder.GetAddressOf()));
-		// 
+		// 画像内のフレームを取得
 		UINT frameCount = 0;
 		ThrowIfFailed(decoder->GetFrameCount(&frameCount));
 

@@ -13,6 +13,9 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include "Graphics.h"
+#include "Scene.h"
+#include "SceneManager.h"
+#include "GameObject.h"
 
 // 入力データを処理するクラスを表します。
 class Input final
@@ -81,7 +84,7 @@ public:
 	DirectX::XMMATRIX GetWorldMatrix() const;
 
 	// このクラスの新しいインスタンスを初期化します。
-	Transform(DirectX::XMVECTOR position);
+	Transform();
 
 private:
 	// コピーと代入演算を禁止
@@ -126,140 +129,6 @@ private:
 	// コピーと代入演算を禁止
 	Camera(const Camera&) {}
 	Camera& operator=(const Camera&) { return *this; }
-};
-
-// ゲームオブジェクトを表します。
-class GameObject
-{
-public:
-	// トランスフォームを取得します。
-	std::shared_ptr<Transform> GetTransform();
-	// トランスフォームを取得します。
-	std::shared_ptr<const Transform> GetTransform() const;
-	// メッシュ
-	std::shared_ptr<Mesh> mesh;
-	// レンダリング
-	std::shared_ptr<MeshRenderer> renderer;
-
-	// このクラスの新しいインスタンスを初期化します。
-	GameObject(std::shared_ptr<Input> input,DirectX::XMVECTOR position);
-
-	// シーンを初期化する際に呼び出されます。
-	void Start();
-	// フレームを更新する際に呼び出されます。
-	void Update(float time, float deltaTime);
-	// フレームを描画する際に呼び出されます。
-	void Draw(ID3D11DeviceContext* deviceContext, float time, float deltaTime);
-
-private:
-	// トランスフォーム
-	std::shared_ptr<Transform> transform;
-	// ユーザー入力デバイス
-	std::shared_ptr<Input> input;
-
-	// コピーと代入演算を禁止
-	GameObject(const GameObject&) {}
-	GameObject& operator=(const GameObject&) { return *this; }
-};
-
-// ゲーム画面を表します。
-class Scene
-{
-public:
-	// このクラスの新しいインスタンスを初期化します。
-	Scene(
-		std::shared_ptr<GameWindow> window,
-		std::shared_ptr<Graphics> graphics,
-		std::shared_ptr<Input> input);
-
-	// シーンを初期化する際に呼び出されます。
-	void Start();
-	// フレームを更新する際に呼び出されます。
-	void Update(float time, float elapsedTime);
-	// フレームを描画する際に呼び出されます。
-	void Draw(float time, float elapsedTime);
-
-private:
-	// このシーンと関連付けられたウィンドウ
-	std::shared_ptr<GameWindow> window;
-	// このシーンと関連付けられたグラフィックス機能
-	std::shared_ptr<Graphics> graphics;
-	// ユーザー入力デバイス
-	std::shared_ptr<Input> input;
-
-	// カメラ パラメーターのための定数バッファーの定義
-	struct ConstantBufferDescForCamera
-	{
-		DirectX::XMMATRIX view;
-		DirectX::XMMATRIX projection;
-	};
-	// カメラ用の定数バッファー
-	std::shared_ptr<ConstantBuffer> constantBufferForCamera;
-
-	// ライティングのための定数バッファーの定義
-	struct ConstantBufferDescForLighting
-	{
-		DirectX::XMFLOAT3A lightPosition;
-		DirectX::XMFLOAT4 diffuseLightColor;
-		DirectX::XMFLOAT4 specularLightColor;
-		DirectX::XMFLOAT4 ambientLightColor;
-
-		DirectX::XMFLOAT3 viewPosition;
-		//マテリアル プロパティ
-		float specularPower;
-		float specularIntensity;
-	};
-	// ライティング用の定数バッファー
-	std::shared_ptr<ConstantBuffer> constantBufferForLighting;
-
-#pragma region CustomPixelShader用
-
-	struct LightingDesc
-	{
-		// 平行光源の情報
-		DirectX::XMFLOAT4 direction;
-		DirectX::XMFLOAT4 color;
-	};
-
-	struct MaterialDesc
-	{
-		// 物体表面の質感
-		DirectX::XMFLOAT3 baseColor;
-		float metallic;
-		DirectX::XMFLOAT3 specular;
-		float roughness;
-	};
-
-	struct ConstantBufferDescForCustomLighting 
-	{
-		LightingDesc lightDesc;
-		MaterialDesc materialDesc;
-		DirectX::XMFLOAT4 cameraPosition;
-	};
-
-	// ライティング用の定数バッファー
-	std::shared_ptr<ConstantBuffer> constantBufferForCustomLighting;
-
-#pragma endregion
-
-
-	// フレームごとに更新される定数バッファーの定義
-	struct ConstantBufferDescForPerFrame
-	{
-		DirectX::XMMATRIX world;
-	};
-	// フレームごとに更新されるの定数バッファー
-	std::shared_ptr<ConstantBuffer> constantBufferForPerFrame;
-
-	// カメラ オブジェクト
-	std::shared_ptr<Camera> camera;
-	// ゲームオブジェクト
-	std::shared_ptr<GameObject> gameObjectA;
-	std::shared_ptr<GameObject> gameObjectB;
-
-	// コピーと代入演算を禁止
-	Scene(const Scene&) {}
-	Scene& operator=(const Scene&) { return *this; }
 };
 
 // アプリケーション初期化についての記述を表します。

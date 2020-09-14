@@ -19,7 +19,6 @@ DirectX::XMMATRIX Transform::GetWorldMatrix() const
 }
 
 // このクラスの新しいインスタンスを初期化します。
-Transform::Transform(XMVECTOR position)
+Transform::Transform()
 {
-	this->position = position;
 }
