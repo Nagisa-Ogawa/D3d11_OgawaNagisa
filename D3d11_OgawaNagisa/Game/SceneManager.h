@@ -15,18 +15,18 @@ class SceneManager
 {
 private:
 	// 現在のシーン
-	std::shared_ptr<Scene> nowScene;
+	std::shared_ptr<Scene> scene;
 public:
 	// このクラスのシングルトンインスタンスを取得します。
 	static SceneManager& GetInstance();
 	SceneManager();
 	// 現在のシーンのUpdate()を呼び出します。
-	void Update(float time, float elapsedTime);
+	std::shared_ptr<Scene> Update(float time, float elapsedTime);
 	// 現在のシーンのDraw()を呼び出します。
 	void Draw(float time, float elapsedTime);
 
 	// 現在のシーンを切り替えます。
-	void ChangeScene(const std::shared_ptr<Scene> nowScene);
+	void ChangeScene(std::shared_ptr<Scene> nowScene);
 	// 現在のシーンを取得します。
 	std::shared_ptr<Scene> GetScene();
 

@@ -77,11 +77,19 @@ private:
 class Transform final
 {
 public:
-	DirectX::XMVECTOR scale = { 1.0f, 1.0f, 1.0f, 1.0f };
-	DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
+	DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity();
+	//DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
+	DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixIdentity();
 	DirectX::XMVECTOR position = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+	// ワールド変換行列を取得
 	DirectX::XMMATRIX GetWorldMatrix() const;
+	// ratationMatrixをセット
+	void SetRotation(float pitch, float yaw, float roll);
+	// scaleをセット
+	void SetScale(float x, float y, float z);
+
+
 
 	// このクラスの新しいインスタンスを初期化します。
 	Transform();

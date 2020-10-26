@@ -47,54 +47,42 @@ void TitleScene::Start()
 
 	titleObj.reset(new GameObject(input));
 
-	ReadModel readModel;
-	readModel.ReadModelData("human.obj");
-
-	//// 位置座標のみをもつ頂点データの型
-	//struct VertexPosition
-	//{
-	//	DirectX::XMFLOAT3 position;	// 位置座標
-	//	DirectX::XMFLOAT3 normal;	// 法線ベクトル
-	//	DirectX::XMFLOAT2 texCoord;	// UV座標
-	//};
-
 	// 頂点データについて入力要素を定義
 	const D3D11_INPUT_ELEMENT_DESC inputElementDescs[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL" ,  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{"TEXCOORD" , 0, DXGI_FORMAT_R32G32_FLOAT,       0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	//// 頂点データ
-	//VertexPosition vertices[] =
-	//{
-	//	{ {-3.0f, 3.0f,0.0f},{0.0f,0.0f,-1.0f},{0.0f,0.0f} },
-	//	{ { 3.0f, 3.0f,0.0f},{0.0f,0.0f,-1.0f},{1.0f,0.0f} },
-	//	{ {-3.0f,-3.0f,0.0f},{0.0f,0.0f,-1.0f},{0.0f,1.0f} },
-	//	{ { 3.0f,-3.0f,0.0f},{0.0f,0.0f,-1.0f},{1.0f,1.0f} },
-	//};
+	// 頂点データ
+	ReadModel::VertexPosition vertices[] =
+	{
+		{ {-3.0f, 3.0f,0.0f},{0.0f,0.0f,-1.0f},{0.0f,0.0f} },
+		{ { 3.0f, 3.0f,0.0f},{0.0f,0.0f,-1.0f},{1.0f,0.0f} },
+		{ {-3.0f,-3.0f,0.0f},{0.0f,0.0f,-1.0f},{0.0f,1.0f} },
+		{ { 3.0f,-3.0f,0.0f},{0.0f,0.0f,-1.0f},{1.0f,1.0f} },
+	};
 
 	// 頂点バッファーを作成
 	shared_ptr<VertexBuffer> vertexBuffers[] = {
 		shared_ptr<VertexBuffer>(new VertexBuffer(
-			graphicsDevice, readModel.GetVertexData(),readModel.GetVerticesSize())
+			graphicsDevice, vertices)
 		)
 	};
 
 	UINT strides[] = {
 		sizeof(ReadModel::VertexPosition),
 	};
-	////インデックスデータの配列
-	//UINT32 indices[] =
-	//{
-	//	0,1,2,
-	//	3,2,1
-	//};
+	//インデックスデータの配列
+	UINT32 indices[] =
+	{
+		0,1,2,
+		3,2,1
+	};
 
 	shared_ptr<IndexBuffer> indexBuffer(
 		new IndexBuffer(
 			graphicsDevice, 
-			readModel.GetIndexData(),readModel.GetIndicesSize(),
-			DXGI_FORMAT_R32_UINT
+			indices
 		)
 	);
 
@@ -114,7 +102,7 @@ void TitleScene::Start()
 
 	std::shared_ptr<Texture2D> texture;
 	// テクスチャーを読み込み
-	texture.reset(new Texture2D(graphicsDevice, L"../resource/image/test.png"));
+	texture.reset(new Texture2D(graphicsDevice, L"../resource/image/title.png"));
 
 
 	// レンダラーを作成
@@ -122,13 +110,15 @@ void TitleScene::Start()
 }
 
 // フレームを更新する際に呼び出されます。
-void TitleScene::Update(float time, float elapsedTime)
+std::shared_ptr<Scene> TitleScene::Update(float time, float elapsedTime)
 {
-	if (input->GetKeyDown(VK_RETURN)) {
+	if (input->GetMouseButtonDown(0)) {
 		std::shared_ptr<GameScene> gameScene(new GameScene(window, graphics, input));
-		SceneManager::GetInstance().ChangeScene(gameScene);
+		return gameScene;
 	}
 	titleObj->Update(time, elapsedTime);
+	
+	return SceneManager::GetInstance().GetScene();
 }
 
 // フレームを描画する際に呼び出されます。

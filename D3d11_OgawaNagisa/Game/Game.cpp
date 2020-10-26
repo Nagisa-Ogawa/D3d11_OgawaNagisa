@@ -39,9 +39,13 @@ int Game::OnRun(const ApplicationSettings& settings)
 		OnInitialize(settings);
 	}
 
-	std::shared_ptr<TitleScene> titleScene(new TitleScene(window, graphics, input));
+	// 最初のシーンを作成
+	std::shared_ptr<Scene> titleScene = std::make_shared<TitleScene>(window, graphics, input);
+	// シーンをセット
 	SceneManager::GetInstance().ChangeScene(titleScene);
 
+	// 現在のシーン
+	std::shared_ptr<Scene> nowScene = nullptr;
 	long long totalCount = 0;	// 累積時間（ミリ秒）
 	long long deltaCount = 0;	// 経過時間（ミリ秒）
 
@@ -66,12 +70,15 @@ int Game::OnRun(const ApplicationSettings& settings)
 		}
 
 		// シーンのフレーム処理
-		SceneManager::GetInstance().Update(time, deltaTime);
+		nowScene = SceneManager::GetInstance().Update(time, deltaTime);
 		SceneManager::GetInstance().Draw(time, deltaTime);
 
 		// バックバッファーに描画したイメージをディスプレイに表示
 		graphics->GetSwapChain()->Present(1, 0);
-
+		// nowSceneが変わったのならsceneを変える
+		if (nowScene != SceneManager().GetInstance().GetScene()) {
+			SceneManager::GetInstance().ChangeScene(nowScene);
+		}
 		// フレーム終了時のカウントを取得
 		auto end = system_clock::now();
 		// 経過時間と累積時間を更新

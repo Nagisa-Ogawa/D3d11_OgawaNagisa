@@ -14,6 +14,7 @@ class GameWindow;
 class Graphics;
 class GameObject;
 class PlayerObject;
+class FloorObject;
 class Input;
 
 // ゲーム画面を表します。
@@ -36,7 +37,7 @@ public:
 	// シーンを初期化する際に呼び出されます。
 	virtual void Start() = 0;
 	// フレームを更新する際に呼び出されます。
-	virtual void Update(float time, float elapsedTime) = 0;
+	virtual std::shared_ptr<Scene> Update(float time, float elapsedTime) = 0;
 	// フレームを描画する際に呼び出されます。
 	virtual void Draw(float time, float elapsedTime) = 0;
 	// シーンを削除する際に呼び出されます。
@@ -133,13 +134,13 @@ public:
 		std::shared_ptr<Graphics> graphics,
 		std::shared_ptr<Input> input);
 	void Start();
-	void Update(float time, float elapsedTime);
+	std::shared_ptr<Scene> Update(float time, float elapsedTime);
 	void Draw(float time, float elapsedTime);
 	void End();
 
 private:
 	// ゲームオブジェクト
-	std::shared_ptr<GameObject> titleObj;
+	std::unique_ptr<GameObject> titleObj;
 
 };
 
@@ -151,14 +152,17 @@ public:
 		std::shared_ptr<Graphics> graphics,
 		std::shared_ptr<Input> input);
 	void Start();
-	void Update(float time, float elapsedTime);
+	std::shared_ptr<Scene> Update(float time, float elapsedTime);
 	void Draw(float time, float elapsedTime);
 	void End();
 
 private:
 	// ゲームオブジェクト
-	std::shared_ptr<PlayerObject> playerObject;
-	std::shared_ptr<GameObject> gameObjectB;
+	std::unique_ptr<PlayerObject> playerObject;
+	// エネミー(仮)
+	std::unique_ptr<PlayerObject> enemy;
+	// 床
+	std::unique_ptr<FloorObject> floor;
 
 };
 

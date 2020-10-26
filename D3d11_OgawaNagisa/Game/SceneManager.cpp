@@ -13,13 +13,15 @@ SceneManager::SceneManager(){
 }
 
 // 現在のシーンのUpdate()を呼び出します。
-void SceneManager::Update(float time, float elapsedTime) {
-	this->nowScene->Update(time, elapsedTime);
+std::shared_ptr<Scene> SceneManager::Update(float time, float elapsedTime) {
+	std::shared_ptr<Scene> nowScene;
+	nowScene = this->scene->Update(time, elapsedTime);
+	return nowScene;
 }
 
 // 現在のシーンのDraw()を呼び出します。
 void SceneManager::Draw(float time, float elapsedTime) {
-	this->nowScene->Draw(time, elapsedTime);
+	this->scene->Draw(time, elapsedTime);
 }
 
 // 現在のシーンを切り替えます。
@@ -29,20 +31,21 @@ void SceneManager::ChangeScene(std::shared_ptr<Scene> nowScene)
 		return;
 	}
 	// 現在のシーンの終了処理をします。
-	if (this->nowScene != NULL) {
-		this->nowScene->End();
+	if (this->scene != NULL) {
+		this->scene->End();
 	}
+	
 	// シーンを切り替えます。
-	this->nowScene = nowScene;
+	this->scene = nowScene;
 	// 新しいシーンの初期化処理を呼び出します。
-	this->nowScene->Start();
+	this->scene->Start();
 }
 
 // 現在のシーンを取得します。
 std::shared_ptr<Scene> SceneManager::GetScene()
 {
-	if (this->nowScene == NULL) {
-		return NULL;
+	if (this->scene == nullptr) {
+		return nullptr;
 	}
-	return this->nowScene;
+	return this->scene;
 }
